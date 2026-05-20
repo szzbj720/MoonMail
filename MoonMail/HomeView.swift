@@ -7,6 +7,7 @@ struct HomeView: View {
 
     @StateObject private var moodViewModel = MoonMoodViewModel()
     @StateObject private var signalsViewModel = MoonSignalsViewModel()
+    @StateObject private var coupleViewModel = CoupleSettingsViewModel()
 
     let moods = [
         MoodOption(title: "Loved", icon: "heart.fill"),
@@ -16,6 +17,10 @@ struct HomeView: View {
         MoodOption(title: "Excited", icon: "sparkles")
     ]
 
+    private var partnerName: String {
+        coupleViewModel.couple?.partnerName(for: profile.uid) ?? "Partner"
+    }
+
     var body: some View {
         ZStack {
             DoodleBackground()
@@ -23,7 +28,10 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 22) {
                     header
-                    MoonbeamDistanceCard(profile: profile)
+                    MoonbeamDistanceCard(
+                        currentUserName: profile.displayName,
+                        partnerName: partnerName
+                    )
                     NextMoonriseCard()
                     MoonMoodCard(profile: profile, moods: moods, viewModel: moodViewModel)
                     MoonSignalsGrid(profile: profile, viewModel: signalsViewModel)
@@ -36,6 +44,7 @@ struct HomeView: View {
         .task {
             moodViewModel.startListening(coupleId: profile.coupleId)
             signalsViewModel.startListening(coupleId: profile.coupleId)
+            coupleViewModel.startListening(coupleId: profile.coupleId)
         }
         .alert("Moon Mood", isPresented: $moodViewModel.showError) {
             Button("OK", role: .cancel) { }
@@ -52,6 +61,11 @@ struct HomeView: View {
         } message: {
             Text(signalsViewModel.successMessage)
         }
+        .alert("Moon Room", isPresented: $coupleViewModel.showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(coupleViewModel.errorMessage)
+        }
     }
 
     private var header: some View {
@@ -60,7 +74,7 @@ struct HomeView: View {
                 .font(.system(size: 38, weight: .heavy, design: .rounded))
                 .foregroundStyle(MoonMailTheme.ink)
 
-            Text("\(profile.displayName)  ♡  Partner")
+            Text("\(profile.displayName)  ♡  \(partnerName)")
                 .font(.system(size: 22, weight: .bold, design: .rounded))
                 .foregroundStyle(MoonMailTheme.softPurple)
 
@@ -73,13 +87,14 @@ struct HomeView: View {
 }
 
 struct MoonbeamDistanceCard: View {
-    let profile: MoonMailUserProfile
+    let currentUserName: String
+    let partnerName: String
 
     var body: some View {
         CuteCard {
             VStack(spacing: 16) {
                 HStack {
-                    PartnerBubble(icon: "person.crop.circle.fill", name: profile.displayName)
+                    PartnerBubble(icon: "person.crop.circle.fill", name: currentUserName)
 
                     Spacer()
 
@@ -101,7 +116,7 @@ struct MoonbeamDistanceCard: View {
 
                     Spacer()
 
-                    PartnerBubble(icon: "person.crop.circle.fill.badge.heart", name: "Partner")
+                    PartnerBubble(icon: "person.crop.circle.fill.badge.heart", name: partnerName)
                 }
 
                 HStack {
