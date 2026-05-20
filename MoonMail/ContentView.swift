@@ -14,6 +14,14 @@ struct MoonMailUserProfile {
     let inviteCode: String?
 }
 
+struct MoonNote: Identifiable, Hashable {
+    let id: String
+    let text: String
+    let senderId: String
+    let senderName: String
+    let createdAt: Date
+}
+
 @MainActor
 final class MoonMailAppState: ObservableObject {
     @Published var currentUser: MoonMailUserProfile?
@@ -248,6 +256,111 @@ final class MoonMailAppState: ObservableObject {
     private func generateMoonCode() -> String {
         let number = Int.random(in: 1000...9999)
         return "MOON-\(number)"
+    }
+    
+    private func show(message: String) {
+        errorMessage = message
+        showError = true
+    }
+}
+
+// MARK: - Moon Notes View Model
+
+@MainActor
+final class MoonNotesViewModel: ObservableObject {
+    @Published var notes: [MoonNote] = []
+    @Published var isSending = false
+    @Published var errorMessage = ""
+    @Published var showError = false
+    
+    private let db = Firestore.firestore()
+    private var listener: ListenerRegistration?
+    private var activeCoupleId: String?
+    
+    deinit {
+        listener?.remove()
+    }
+    
+    func startListening(coupleId: String?) {
+        guard let coupleId else {
+            show(message: "No Moon Room found for this account.")
+            return
+        }
+        
+        guard activeCoupleId != coupleId else {
+            return
+        }
+        
+        listener?.remove()
+        activeCoupleId = coupleId
+        
+        listener = db.collection("couples")
+            .document(coupleId)
+            .collection("notes")
+            .order(by: "createdAt", descending: true)
+            .addSnapshotListener { [weak self] snapshot, error in
+                Task { @MainActor in
+                    guard let self else { return }
+                    
+                    if let error {
+                        self.show(message: error.localizedDescription)
+                        return
+                    }
+                    
+                    guard let documents = snapshot?.documents else {
+                        self.notes = []
+                        return
+                    }
+                    
+                    self.notes = documents.map { document in
+                        let data = document.data()
+                        let timestamp = data["createdAt"] as? Timestamp
+                        
+                        return MoonNote(
+                            id: document.documentID,
+                            text: data["text"] as? String ?? "",
+                            senderId: data["senderId"] as? String ?? "",
+                            senderName: data["senderName"] as? String ?? "Unknown",
+                            createdAt: timestamp?.dateValue() ?? Date()
+                        )
+                    }
+                }
+            }
+    }
+    
+    func sendNote(text: String, profile: MoonMailUserProfile) async -> Bool {
+        let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        guard !trimmedText.isEmpty else {
+            show(message: "Please write a Moon Note before sending.")
+            return false
+        }
+        
+        guard let coupleId = profile.coupleId else {
+            show(message: "No Moon Room found for this account.")
+            return false
+        }
+        
+        isSending = true
+        
+        do {
+            try await db.collection("couples")
+                .document(coupleId)
+                .collection("notes")
+                .addDocument(data: [
+                    "text": trimmedText,
+                    "senderId": profile.uid,
+                    "senderName": profile.displayName,
+                    "createdAt": FieldValue.serverTimestamp()
+                ])
+            
+            isSending = false
+            return true
+        } catch {
+            isSending = false
+            show(message: error.localizedDescription)
+            return false
+        }
     }
     
     private func show(message: String) {
@@ -781,7 +894,7 @@ struct MainTabView: View {
                     Text("Home")
                 }
             
-            NotesView()
+            NotesView(profile: profile)
                 .tabItem {
                     Image(systemName: "envelope.fill")
                     Text("Notes")
@@ -1081,7 +1194,7 @@ struct LatestMoonNoteCard: View {
                     CuteSymbol(name: "envelope.fill", size: 28)
                 }
                 
-                Text("I hope your night feels soft and warm. I miss you more than yesterday.")
+                Text("Your newest Moon Note will appear in the Notes tab.")
                     .font(.system(size: 17, weight: .medium, design: .rounded))
                     .foregroundStyle(MoonMailTheme.ink)
                     .padding()
@@ -1095,6 +1208,9 @@ struct LatestMoonNoteCard: View {
 // MARK: - Notes
 
 struct NotesView: View {
+    let profile: MoonMailUserProfile
+    
+    @StateObject private var viewModel = MoonNotesViewModel()
     @State private var noteText = ""
     
     var body: some View {
@@ -1115,15 +1231,26 @@ struct NotesView: View {
                         
                         TextField("Dear moon...", text: $noteText, axis: .vertical)
                             .padding()
-                            .frame(minHeight: 120, alignment: .top)
+                            .frame(minHeight: 110, alignment: .top)
                             .background(Color.white.opacity(0.85))
                             .clipShape(RoundedRectangle(cornerRadius: 20))
                         
                         Button {
-                            noteText = ""
+                            Task {
+                                let sent = await viewModel.sendNote(text: noteText, profile: profile)
+                                
+                                if sent {
+                                    noteText = ""
+                                }
+                            }
                         } label: {
                             HStack {
-                                Text("Send Moon Note")
+                                if viewModel.isSending {
+                                    ProgressView()
+                                        .tint(.white)
+                                }
+                                
+                                Text(viewModel.isSending ? "Sending..." : "Send Moon Note")
                                 Image(systemName: "paperplane.fill")
                             }
                             .font(.system(size: 17, weight: .bold, design: .rounded))
@@ -1133,46 +1260,98 @@ struct NotesView: View {
                             .foregroundStyle(.white)
                             .clipShape(RoundedRectangle(cornerRadius: 22))
                         }
+                        .disabled(viewModel.isSending)
                     }
                 }
                 .padding(.horizontal)
                 
-                CuteCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Saved Notes")
-                            .font(.system(size: 22, weight: .bold, design: .rounded))
-                            .foregroundStyle(MoonMailTheme.ink)
-                        
-                        NoteRow(sender: "Partner", text: "Good night, little moon.")
-                        NoteRow(sender: "Me", text: "I saw the moon and thought of you.")
+                if viewModel.notes.isEmpty {
+                    EmptyNotesCard()
+                        .padding(.horizontal)
+                } else {
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            ForEach(viewModel.notes) { note in
+                                NoteRow(
+                                    note: note,
+                                    isMe: note.senderId == profile.uid
+                                )
+                            }
+                        }
+                        .padding(.horizontal)
+                        .padding(.bottom, 20)
                     }
                 }
-                .padding(.horizontal)
-                
-                Spacer()
             }
+        }
+        .task {
+            viewModel.startListening(coupleId: profile.coupleId)
+        }
+        .alert("Moon Notes", isPresented: $viewModel.showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(viewModel.errorMessage)
+        }
+    }
+}
+
+struct EmptyNotesCard: View {
+    var body: some View {
+        CuteCard {
+            VStack(spacing: 12) {
+                CuteSymbol(name: "envelope.open.fill", size: 42)
+                
+                Text("No Moon Notes yet")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(MoonMailTheme.ink)
+                
+                Text("Send the first sweet note and it will appear here.")
+                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
         }
     }
 }
 
 struct NoteRow: View {
-    let sender: String
-    let text: String
+    let note: MoonNote
+    let isMe: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(sender)
-                .font(.system(size: 14, weight: .bold, design: .rounded))
-                .foregroundStyle(MoonMailTheme.softPurple)
+        VStack(alignment: .leading, spacing: 7) {
+            HStack {
+                Text(isMe ? "Me" : note.senderName)
+                    .font(.system(size: 14, weight: .bold, design: .rounded))
+                    .foregroundStyle(MoonMailTheme.softPurple)
+                
+                Spacer()
+                
+                Text(formattedDate(note.createdAt))
+                    .font(.system(size: 12, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
             
-            Text(text)
+            Text(note.text)
                 .font(.system(size: 16, weight: .medium, design: .rounded))
                 .foregroundStyle(MoonMailTheme.ink)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white.opacity(0.72))
-        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .background(isMe ? MoonMailTheme.blush.opacity(0.65) : Color.white.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay {
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(isMe ? MoonMailTheme.softPurple.opacity(0.25) : Color.white.opacity(0.4), lineWidth: 1.5)
+        }
+    }
+    
+    private func formattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter.string(from: date)
     }
 }
 
