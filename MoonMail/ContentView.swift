@@ -22,6 +22,20 @@ struct MoonNote: Identifiable, Hashable {
     let createdAt: Date
 }
 
+struct MoonMoodStatus: Identifiable, Hashable {
+    let id: String
+    let userId: String
+    let userName: String
+    let moodTitle: String
+    let moodIcon: String
+    let updatedAt: Date
+}
+
+struct MoodOption: Hashable {
+    let title: String
+    let icon: String
+}
+
 @MainActor
 final class MoonMailAppState: ObservableObject {
     @Published var currentUser: MoonMailUserProfile?
@@ -361,6 +375,112 @@ final class MoonNotesViewModel: ObservableObject {
             show(message: error.localizedDescription)
             return false
         }
+    }
+    
+    private func show(message: String) {
+        errorMessage = message
+        showError = true
+    }
+}
+
+// MARK: - Moon Mood View Model
+
+@MainActor
+final class MoonMoodViewModel: ObservableObject {
+    @Published var moods: [MoonMoodStatus] = []
+    @Published var isSaving = false
+    @Published var errorMessage = ""
+    @Published var showError = false
+    
+    private let db = Firestore.firestore()
+    private var listener: ListenerRegistration?
+    private var activeCoupleId: String?
+    
+    deinit {
+        listener?.remove()
+    }
+    
+    func startListening(coupleId: String?) {
+        guard let coupleId else {
+            show(message: "No Moon Room found for this account.")
+            return
+        }
+        
+        guard activeCoupleId != coupleId else {
+            return
+        }
+        
+        listener?.remove()
+        activeCoupleId = coupleId
+        
+        listener = db.collection("couples")
+            .document(coupleId)
+            .collection("moods")
+            .addSnapshotListener { [weak self] snapshot, error in
+                Task { @MainActor in
+                    guard let self else { return }
+                    
+                    if let error {
+                        self.show(message: error.localizedDescription)
+                        return
+                    }
+                    
+                    guard let documents = snapshot?.documents else {
+                        self.moods = []
+                        return
+                    }
+                    
+                    self.moods = documents.map { document in
+                        let data = document.data()
+                        let timestamp = data["updatedAt"] as? Timestamp
+                        
+                        return MoonMoodStatus(
+                            id: document.documentID,
+                            userId: data["userId"] as? String ?? "",
+                            userName: data["userName"] as? String ?? "Unknown",
+                            moodTitle: data["moodTitle"] as? String ?? "Not set",
+                            moodIcon: data["moodIcon"] as? String ?? "moon.stars.fill",
+                            updatedAt: timestamp?.dateValue() ?? Date()
+                        )
+                    }
+                }
+            }
+    }
+    
+    func updateMood(mood: MoodOption, profile: MoonMailUserProfile) async {
+        guard let coupleId = profile.coupleId else {
+            show(message: "No Moon Room found for this account.")
+            return
+        }
+        
+        isSaving = true
+        
+        do {
+            try await db.collection("couples")
+                .document(coupleId)
+                .collection("moods")
+                .document(profile.uid)
+                .setData([
+                    "userId": profile.uid,
+                    "userName": profile.displayName,
+                    "moodTitle": mood.title,
+                    "moodIcon": mood.icon,
+                    "updatedAt": FieldValue.serverTimestamp()
+                ], merge: true)
+            
+            isSaving = false
+        } catch {
+            isSaving = false
+            show(message: error.localizedDescription)
+        }
+    }
+    
+    func moodForUser(_ userId: String) -> MoonMoodStatus? {
+        moods.first { $0.userId == userId }
+    }
+    
+    func partnerMood(currentUserId: String) -> MoonMoodStatus? {
+        moods.first { $0.userId != currentUserId }
     }
     
     private func show(message: String) {
@@ -921,7 +1041,7 @@ struct MainTabView: View {
 struct HomeView: View {
     let profile: MoonMailUserProfile
     
-    @State private var selectedMood = "Loved"
+    @StateObject private var moodViewModel = MoonMoodViewModel()
     
     let moods = [
         MoodOption(title: "Loved", icon: "heart.fill"),
@@ -940,12 +1060,20 @@ struct HomeView: View {
                     header
                     MoonbeamDistanceCard(profile: profile)
                     NextMoonriseCard()
-                    MoonMoodCard(selectedMood: $selectedMood, moods: moods)
+                    MoonMoodCard(profile: profile, moods: moods, viewModel: moodViewModel)
                     MoonSignalsGrid()
                     LatestMoonNoteCard()
                 }
                 .padding()
             }
+        }
+        .task {
+            moodViewModel.startListening(coupleId: profile.coupleId)
+        }
+        .alert("Moon Mood", isPresented: $moodViewModel.showError) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(moodViewModel.errorMessage)
         }
     }
     
@@ -1073,16 +1201,21 @@ struct NextMoonriseCard: View {
     }
 }
 
-// MARK: - Mood
-
-struct MoodOption: Hashable {
-    let title: String
-    let icon: String
-}
+// MARK: - Mood UI
 
 struct MoonMoodCard: View {
-    @Binding var selectedMood: String
+    let profile: MoonMailUserProfile
     let moods: [MoodOption]
+    
+    @ObservedObject var viewModel: MoonMoodViewModel
+    
+    private var myMood: MoonMoodStatus? {
+        viewModel.moodForUser(profile.uid)
+    }
+    
+    private var partnerMood: MoonMoodStatus? {
+        viewModel.partnerMood(currentUserId: profile.uid)
+    }
     
     var body: some View {
         CuteCard {
@@ -1094,13 +1227,19 @@ struct MoonMoodCard: View {
                     
                     Spacer()
                     
-                    CuteSymbol(name: "moon.stars.fill", size: 28)
+                    if viewModel.isSaving {
+                        ProgressView()
+                    } else {
+                        CuteSymbol(name: "moon.stars.fill", size: 28)
+                    }
                 }
                 
                 HStack {
                     ForEach(moods, id: \.self) { mood in
                         Button {
-                            selectedMood = mood.title
+                            Task {
+                                await viewModel.updateMood(mood: mood, profile: profile)
+                            }
                         } label: {
                             VStack(spacing: 4) {
                                 Image(systemName: mood.icon)
@@ -1112,21 +1251,55 @@ struct MoonMoodCard: View {
                                     .foregroundStyle(MoonMailTheme.ink)
                             }
                             .frame(width: 58, height: 58)
-                            .background(selectedMood == mood.title ? MoonMailTheme.lavender : Color.white.opacity(0.82))
+                            .background(myMood?.moodTitle == mood.title ? MoonMailTheme.lavender : Color.white.opacity(0.82))
                             .clipShape(Circle())
                         }
+                        .disabled(viewModel.isSaving)
                     }
                 }
                 
-                HStack {
-                    Text("Me: \(selectedMood)")
-                    Spacer()
-                    Text("Partner: Missing")
+                VStack(spacing: 10) {
+                    MoodStatusRow(
+                        title: "Me",
+                        moodTitle: myMood?.moodTitle ?? "Not set",
+                        moodIcon: myMood?.moodIcon ?? "moon.stars.fill"
+                    )
+                    
+                    MoodStatusRow(
+                        title: partnerMood?.userName ?? "Partner",
+                        moodTitle: partnerMood?.moodTitle ?? "Not set",
+                        moodIcon: partnerMood?.moodIcon ?? "moon.stars.fill"
+                    )
                 }
-                .font(.system(size: 16, weight: .bold, design: .rounded))
-                .foregroundStyle(MoonMailTheme.ink)
             }
         }
+    }
+}
+
+struct MoodStatusRow: View {
+    let title: String
+    let moodTitle: String
+    let moodIcon: String
+    
+    var body: some View {
+        HStack {
+            Image(systemName: moodIcon)
+                .foregroundStyle(MoonMailTheme.softPurple)
+                .frame(width: 26)
+            
+            Text(title)
+                .font(.system(size: 16, weight: .bold, design: .rounded))
+                .foregroundStyle(MoonMailTheme.ink)
+            
+            Spacer()
+            
+            Text(moodTitle)
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+        .padding()
+        .background(Color.white.opacity(0.58))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
     }
 }
 
