@@ -1,3 +1,5 @@
+// File: MoonSignalsViewModel.swift
+
 import Foundation
 import Combine
 import FirebaseFirestore
@@ -89,19 +91,12 @@ final class MoonSignalsViewModel: ObservableObject {
                 ])
 
             isSending = false
-            successMessage = "Signal sent!"
+            successMessage = "\(signal.title) sent!"
             showSuccess = true
         } catch {
             isSending = false
             show(message: error.localizedDescription)
         }
-    }
-
-    func sendTestSignal(profile: MoonMailUserProfile) async {
-        await sendSignal(
-            MoonSignal(title: "Test Signal", icon: "sparkles"),
-            profile: profile
-        )
     }
 
     private func show(message: String) {

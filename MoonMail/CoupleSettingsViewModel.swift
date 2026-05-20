@@ -1,10 +1,3 @@
-//
-//  CoupleSettingsViewModel.swift
-//  MoonMail
-//
-//  Created by Selena Zhang on 5/20/26.
-//
-
 // File: CoupleSettingsViewModel.swift
 
 import Foundation

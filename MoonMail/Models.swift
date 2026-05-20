@@ -73,7 +73,7 @@ struct MoonCoupleProfile: Equatable {
             return partnerTwoName
         }
 
-        return partnerOneName
+        return partnerOneName.isEmpty ? "Waiting for partner" : partnerOneName
     }
 }
 

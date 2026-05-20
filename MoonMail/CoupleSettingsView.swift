@@ -14,9 +14,10 @@ struct CoupleSettingsView: View {
     @State private var copiedCode = false
 
     private var currentInviteCode: String {
-        viewModel.couple?.inviteCode.isEmpty == false
-            ? (viewModel.couple?.inviteCode ?? "")
-            : (profile.inviteCode ?? "No Code")
+        if let inviteCode = viewModel.couple?.inviteCode, !inviteCode.isEmpty {
+            return inviteCode
+        }
+        return profile.inviteCode ?? "No Code"
     }
 
     private var connectionText: String {

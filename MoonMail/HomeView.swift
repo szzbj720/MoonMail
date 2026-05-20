@@ -1,3 +1,5 @@
+// File: HomeView.swift
+
 import SwiftUI
 
 struct HomeView: View {
@@ -276,23 +278,6 @@ struct MoonSignalsGrid: View {
                     .disabled(viewModel.isSending)
                 }
             }
-
-            Button {
-                Task {
-                    await viewModel.sendTestSignal(profile: profile)
-                }
-            } label: {
-                HStack {
-                    Text("Debug: Send Test Signal")
-                    Image(systemName: "ladybug.fill")
-                }
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .frame(maxWidth: .infinity)
-                .padding()
-                .background(Color.white.opacity(0.85))
-                .foregroundStyle(MoonMailTheme.ink)
-                .clipShape(RoundedRectangle(cornerRadius: 20))
-            }
         }
     }
 }
@@ -360,4 +345,36 @@ struct LatestMoonNoteCard: View {
             }
         }
     }
+}
+
+private func moonSignalRelativeTime(from date: Date) -> String {
+    let seconds = Int(Date().timeIntervalSince(date))
+
+    if seconds < 10 {
+        return "just now"
+    }
+
+    if seconds < 60 {
+        return "\(seconds)s ago"
+    }
+
+    let minutes = seconds / 60
+    if minutes < 60 {
+        return "\(minutes)m ago"
+    }
+
+    let hours = minutes / 60
+    if hours < 24 {
+        return "\(hours)h ago"
+    }
+
+    let days = hours / 24
+    if days < 7 {
+        return "\(days)d ago"
+    }
+
+    let formatter = DateFormatter()
+    formatter.dateStyle = .short
+    formatter.timeStyle = .none
+    return formatter.string(from: date)
 }
