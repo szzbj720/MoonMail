@@ -1,3 +1,5 @@
+// File: Models.swift
+
 import Foundation
 
 struct MoonMailUserProfile {
@@ -42,6 +44,37 @@ struct MoodOption: Hashable {
 struct MoonSignal: Hashable {
     let title: String
     let icon: String
+}
+
+struct MoonCoupleProfile: Equatable {
+    let coupleId: String
+    let inviteCode: String
+    let partnerOneId: String
+    let partnerOneName: String
+    let partnerTwoId: String
+    let partnerTwoName: String
+    let reunionDate: Date?
+    let createdAt: Date?
+
+    var isConnected: Bool {
+        !partnerOneId.isEmpty && !partnerTwoId.isEmpty
+    }
+
+    func partnerName(for currentUserId: String) -> String {
+        if currentUserId == partnerOneId {
+            return partnerTwoName.isEmpty ? "Waiting for partner" : partnerTwoName
+        }
+
+        if currentUserId == partnerTwoId {
+            return partnerOneName.isEmpty ? "Waiting for partner" : partnerOneName
+        }
+
+        if !partnerTwoName.isEmpty {
+            return partnerTwoName
+        }
+
+        return partnerOneName
+    }
 }
 
 enum AuthRoute: Hashable {
