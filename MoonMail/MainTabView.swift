@@ -1,3 +1,5 @@
+// File: MainTabView.swift
+
 import SwiftUI
 
 struct MainTabView: View {
@@ -17,7 +19,7 @@ struct MainTabView: View {
                     Text("Notes")
                 }
 
-            MemoriesView()
+            MemoriesView(profile: profile)
                 .tabItem {
                     Image(systemName: "photo.on.rectangle.angled")
                     Text("Memories")

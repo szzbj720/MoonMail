@@ -36,6 +36,17 @@ struct MoonSignalStatus: Identifiable, Hashable {
     let createdAt: Date
 }
 
+struct MoonMemory: Identifiable, Hashable {
+    let id: String
+    let title: String
+    let caption: String
+    let imageURL: String
+    let storagePath: String
+    let senderId: String
+    let senderName: String
+    let createdAt: Date
+}
+
 struct MoodOption: Hashable {
     let title: String
     let icon: String
