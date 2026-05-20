@@ -1,14 +1,12 @@
-//
-//  MoonMailApp.swift
-//  MoonMail
-//
-//  Created by Selena Zhang on 5/20/26.
-//
-
 import SwiftUI
+import FirebaseCore
 
 @main
 struct MoonMailApp: App {
+    init() {
+        FirebaseApp.configure()
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
