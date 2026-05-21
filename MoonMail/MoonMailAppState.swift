@@ -13,13 +13,20 @@ final class MoonMailAppState: ObservableObject {
     @Published var showError = false
 
     private let db = Firestore.firestore()
+    private var authStateListenerHandle: AuthStateDidChangeListenerHandle?
 
     init() {
         listenForAuthChanges()
     }
 
+    deinit {
+        if let authStateListenerHandle {
+            Auth.auth().removeStateDidChangeListener(authStateListenerHandle)
+        }
+    }
+
     private func listenForAuthChanges() {
-        Auth.auth().addStateDidChangeListener { [weak self] _, user in
+        authStateListenerHandle = Auth.auth().addStateDidChangeListener { [weak self] _, user in
             guard let self else { return }
 
             Task {
