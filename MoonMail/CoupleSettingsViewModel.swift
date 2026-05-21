@@ -55,6 +55,7 @@ final class CoupleSettingsViewModel: ObservableObject {
                     }
 
                     let reunionTimestamp = data["reunionDate"] as? Timestamp
+                    let relationshipStartTimestamp = data["relationshipStartDate"] as? Timestamp
                     let createdTimestamp = data["createdAt"] as? Timestamp
 
                     self.couple = MoonCoupleProfile(
@@ -65,6 +66,7 @@ final class CoupleSettingsViewModel: ObservableObject {
                         partnerTwoId: data["partnerTwoId"] as? String ?? "",
                         partnerTwoName: data["partnerTwoName"] as? String ?? "",
                         reunionDate: reunionTimestamp?.dateValue(),
+                        relationshipStartDate: relationshipStartTimestamp?.dateValue(),
                         createdAt: createdTimestamp?.dateValue()
                     )
 
@@ -90,6 +92,30 @@ final class CoupleSettingsViewModel: ObservableObject {
 
             isSaving = false
             successMessage = "Reunion date saved!"
+            showSuccess = true
+        } catch {
+            isSaving = false
+            show(message: error.localizedDescription)
+        }
+    }
+
+    func saveRelationshipStartDate(_ date: Date, coupleId: String?) async {
+        guard let coupleId else {
+            show(message: "No Moon Room found for this account.")
+            return
+        }
+
+        isSaving = true
+
+        do {
+            try await db.collection("couples")
+                .document(coupleId)
+                .updateData([
+                    "relationshipStartDate": Timestamp(date: date)
+                ])
+
+            isSaving = false
+            successMessage = "Official date saved!"
             showSuccess = true
         } catch {
             isSaving = false

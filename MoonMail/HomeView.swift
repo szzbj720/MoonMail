@@ -28,11 +28,12 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 22) {
                     header
-                    MoonbeamDistanceCard(
+                    TogetherSinceCard(
                         currentUserName: profile.displayName,
-                        partnerName: partnerName
+                        partnerName: partnerName,
+                        relationshipStartDate: coupleViewModel.couple?.relationshipStartDate
                     )
-                    NextMoonriseCard()
+                    NextMoonriseCard(reunionDate: coupleViewModel.couple?.reunionDate)
                     MoonMoodCard(profile: profile, moods: moods, viewModel: moodViewModel)
                     MoonSignalsGrid(profile: profile, viewModel: signalsViewModel)
                     RecentMoonSignalsCard(profile: profile, viewModel: signalsViewModel)
@@ -86,9 +87,43 @@ struct HomeView: View {
     }
 }
 
-struct MoonbeamDistanceCard: View {
+struct TogetherSinceCard: View {
     let currentUserName: String
     let partnerName: String
+    let relationshipStartDate: Date?
+
+    private var daysTogether: Int? {
+        guard let relationshipStartDate else { return nil }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: relationshipStartDate)
+        let end = calendar.startOfDay(for: Date())
+        return calendar.dateComponents([.day], from: start, to: end).day.map { max($0 + 1, 1) }
+    }
+
+    private var officialDateText: String {
+        guard let relationshipStartDate else {
+            return "Set your official date in the Us tab"
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        formatter.timeStyle = .none
+        return "Official since \(formatter.string(from: relationshipStartDate))"
+    }
+
+    private var countText: String {
+        guard let daysTogether else {
+            return "—"
+        }
+        return "\(daysTogether)"
+    }
+
+    private var subtitleText: String {
+        guard let daysTogether else {
+            return "days together"
+        }
+        return daysTogether == 1 ? "day together" : "days together"
+    }
 
     var body: some View {
         CuteCard {
@@ -99,7 +134,7 @@ struct MoonbeamDistanceCard: View {
                     Spacer()
 
                     VStack(spacing: 6) {
-                        CuteSymbol(name: "moon.fill", size: 28)
+                        CuteSymbol(name: "heart.fill", size: 28, color: MoonMailTheme.blush)
 
                         RoundedRectangle(cornerRadius: 10)
                             .fill(MoonMailTheme.softPurple.opacity(0.45))
@@ -119,20 +154,64 @@ struct MoonbeamDistanceCard: View {
                     PartnerBubble(icon: "person.crop.circle.fill.badge.heart", name: partnerName)
                 }
 
-                HStack {
-                    Image(systemName: "location.fill")
-                        .foregroundStyle(MoonMailTheme.softPurple)
+                Text(countText)
+                    .font(.system(size: 56, weight: .heavy, design: .rounded))
+                    .foregroundStyle(MoonMailTheme.softPurple)
 
-                    Text("Moonbeam Distance 543 miles")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(MoonMailTheme.ink)
-                }
+                Text(subtitleText)
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(MoonMailTheme.ink)
+
+                Text(officialDateText)
+                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
         }
     }
 }
 
 struct NextMoonriseCard: View {
+    let reunionDate: Date?
+
+    private var countdownDays: Int? {
+        guard let reunionDate else { return nil }
+        let calendar = Calendar.current
+        let start = calendar.startOfDay(for: Date())
+        let end = calendar.startOfDay(for: reunionDate)
+        return calendar.dateComponents([.day], from: start, to: end).day
+    }
+
+    private var reunionDateText: String {
+        guard let reunionDate else {
+            return "Set your reunion date in the Us tab"
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        formatter.timeStyle = .none
+        return formatter.string(from: reunionDate)
+    }
+
+    private var countdownText: String {
+        guard let countdownDays else {
+            return "—"
+        }
+        return "\(max(countdownDays, 0))"
+    }
+
+    private var subtitleText: String {
+        guard let countdownDays else {
+            return "days until we meet again"
+        }
+
+        if countdownDays <= 0 {
+            return "your moonrise is here"
+        }
+
+        return countdownDays == 1 ? "day until we meet again" : "days until we meet again"
+    }
+
     var body: some View {
         CuteCard {
             VStack(spacing: 14) {
@@ -142,7 +221,7 @@ struct NextMoonriseCard: View {
                             .font(.system(size: 24, weight: .bold, design: .rounded))
                             .foregroundStyle(MoonMailTheme.ink)
 
-                        Text("June 18, 2026")
+                        Text(reunionDateText)
                             .font(.system(size: 16, weight: .semibold, design: .rounded))
                             .foregroundStyle(.secondary)
                     }
@@ -152,19 +231,35 @@ struct NextMoonriseCard: View {
                     CuteSymbol(name: "airplane.departure", size: 36)
                 }
 
-                Text("29")
+                Text(countdownText)
                     .font(.system(size: 64, weight: .heavy, design: .rounded))
                     .foregroundStyle(MoonMailTheme.softPurple)
 
-                Text("days until we meet again")
+                Text(subtitleText)
                     .font(.system(size: 17, weight: .bold, design: .rounded))
                     .foregroundStyle(MoonMailTheme.ink)
 
-                ProgressView(value: 0.62)
-                    .tint(MoonMailTheme.blush)
-                    .scaleEffect(x: 1, y: 1.5)
+                if let countdownDays, countdownDays > 0 {
+                    ProgressView(value: progressValue(until: reunionDate))
+                        .tint(MoonMailTheme.blush)
+                        .scaleEffect(x: 1, y: 1.5)
+                }
             }
         }
+    }
+
+    private func progressValue(until reunionDate: Date?) -> Double {
+        guard
+            let reunionDate,
+            let days = countdownDays,
+            days > 0
+        else {
+            return 0
+        }
+
+        let totalWindow = max(days + 30, 1)
+        let elapsed = totalWindow - days
+        return min(max(Double(elapsed) / Double(totalWindow), 0), 1)
     }
 }
 

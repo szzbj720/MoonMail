@@ -10,7 +10,9 @@ struct CoupleSettingsView: View {
 
     @StateObject private var viewModel = CoupleSettingsViewModel()
     @State private var reunionDate = Date()
-    @State private var hasLoadedInitialDate = false
+    @State private var relationshipStartDate = Date()
+    @State private var hasLoadedInitialReunionDate = false
+    @State private var hasLoadedInitialRelationshipDate = false
     @State private var copiedCode = false
 
     private var currentInviteCode: String {
@@ -51,6 +53,7 @@ struct CoupleSettingsView: View {
 
                     moonCodeCard
                     partnerCard
+                    relationshipCard
                     reunionCard
                     accountCard
                     signOutButton
@@ -63,9 +66,15 @@ struct CoupleSettingsView: View {
         }
         .onChange(of: viewModel.couple?.reunionDate) { _, newValue in
             guard let newValue else { return }
-            guard !hasLoadedInitialDate else { return }
+            guard !hasLoadedInitialReunionDate else { return }
             reunionDate = newValue
-            hasLoadedInitialDate = true
+            hasLoadedInitialReunionDate = true
+        }
+        .onChange(of: viewModel.couple?.relationshipStartDate) { _, newValue in
+            guard let newValue else { return }
+            guard !hasLoadedInitialRelationshipDate else { return }
+            relationshipStartDate = newValue
+            hasLoadedInitialRelationshipDate = true
         }
         .alert("Moon Room", isPresented: $viewModel.showError) {
             Button("OK", role: .cancel) { }
@@ -138,6 +147,56 @@ struct CoupleSettingsView: View {
                 SettingRow(icon: "heart.fill", title: "Partner", value: partnerName)
                 SettingRow(icon: "person.2.fill", title: "Partner One", value: partnerOneName)
                 SettingRow(icon: "person.2.circle.fill", title: "Partner Two", value: partnerTwoName)
+            }
+        }
+        .padding(.horizontal)
+    }
+
+    private var relationshipCard: some View {
+        CuteCard {
+            VStack(alignment: .leading, spacing: 16) {
+                HStack {
+                    Text("Together Since")
+                        .font(.system(size: 22, weight: .bold, design: .rounded))
+                        .foregroundStyle(MoonMailTheme.ink)
+
+                    Spacer()
+
+                    if viewModel.isSaving {
+                        ProgressView()
+                    } else {
+                        CuteSymbol(name: "heart.fill", size: 24, color: MoonMailTheme.blush)
+                    }
+                }
+
+                DatePicker(
+                    "Official Date",
+                    selection: $relationshipStartDate,
+                    displayedComponents: .date
+                )
+                .datePickerStyle(.graphical)
+                .tint(MoonMailTheme.softPurple)
+
+                Button {
+                    Task {
+                        await viewModel.saveRelationshipStartDate(
+                            relationshipStartDate,
+                            coupleId: profile.coupleId
+                        )
+                    }
+                } label: {
+                    HStack {
+                        Text(viewModel.isSaving ? "Saving..." : "Save Official Date")
+                        Image(systemName: "heart.circle.fill")
+                    }
+                    .font(.system(size: 17, weight: .bold, design: .rounded))
+                    .frame(maxWidth: .infinity)
+                    .padding()
+                    .background(MoonMailTheme.softPurple)
+                    .foregroundStyle(.white)
+                    .clipShape(RoundedRectangle(cornerRadius: 22))
+                }
+                .disabled(viewModel.isSaving)
             }
         }
         .padding(.horizontal)

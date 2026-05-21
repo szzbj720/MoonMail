@@ -65,6 +65,7 @@ struct MoonCoupleProfile: Equatable {
     let partnerTwoId: String
     let partnerTwoName: String
     let reunionDate: Date?
+    let relationshipStartDate: Date?
     let createdAt: Date?
 
     var isConnected: Bool {
