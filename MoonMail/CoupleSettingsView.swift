@@ -14,6 +14,12 @@ struct CoupleSettingsView: View {
     @State private var hasLoadedInitialReunionDate = false
     @State private var hasLoadedInitialRelationshipDate = false
     @State private var copiedCode = false
+    @State private var expandedSection: ExpandedDateSection?
+
+    private enum ExpandedDateSection {
+        case relationship
+        case reunion
+    }
 
     private var currentInviteCode: String {
         if let inviteCode = viewModel.couple?.inviteCode, !inviteCode.isEmpty {
@@ -26,18 +32,16 @@ struct CoupleSettingsView: View {
         viewModel.couple?.isConnected == true ? "Connected" : "Waiting for partner"
     }
 
-    private var partnerOneName: String {
-        let name = viewModel.couple?.partnerOneName ?? ""
-        return name.isEmpty ? "Waiting..." : name
-    }
-
-    private var partnerTwoName: String {
-        let name = viewModel.couple?.partnerTwoName ?? ""
-        return name.isEmpty ? "Waiting..." : name
-    }
-
     private var partnerName: String {
         viewModel.couple?.partnerName(for: profile.uid) ?? "Waiting for partner"
+    }
+
+    private var officialDateText: String {
+        formattedDate(viewModel.couple?.relationshipStartDate, emptyText: "Not set")
+    }
+
+    private var reunionDateText: String {
+        formattedDate(viewModel.couple?.reunionDate, emptyText: "Not set")
     }
 
     var body: some View {
@@ -145,8 +149,6 @@ struct CoupleSettingsView: View {
 
                 SettingRow(icon: "person.fill", title: "You", value: profile.displayName)
                 SettingRow(icon: "heart.fill", title: "Partner", value: partnerName)
-                SettingRow(icon: "person.2.fill", title: "Partner One", value: partnerOneName)
-                SettingRow(icon: "person.2.circle.fill", title: "Partner Two", value: partnerTwoName)
             }
         }
         .padding(.horizontal)
@@ -162,41 +164,61 @@ struct CoupleSettingsView: View {
 
                     Spacer()
 
-                    if viewModel.isSaving {
+                    if viewModel.isSaving && expandedSection == .relationship {
                         ProgressView()
                     } else {
                         CuteSymbol(name: "heart.fill", size: 24, color: MoonMailTheme.blush)
                     }
                 }
 
-                DatePicker(
-                    "Official Date",
-                    selection: $relationshipStartDate,
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.graphical)
-                .tint(MoonMailTheme.softPurple)
-
-                Button {
-                    Task {
-                        await viewModel.saveRelationshipStartDate(
-                            relationshipStartDate,
-                            coupleId: profile.coupleId
-                        )
+                dateSummaryRow(
+                    icon: "heart.circle.fill",
+                    title: "Official Date",
+                    value: officialDateText,
+                    isExpanded: expandedSection == .relationship
+                ) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        expandedSection = expandedSection == .relationship ? nil : .relationship
                     }
-                } label: {
-                    HStack {
-                        Text(viewModel.isSaving ? "Saving..." : "Save Official Date")
-                        Image(systemName: "heart.circle.fill")
-                    }
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(MoonMailTheme.softPurple)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 22))
                 }
-                .disabled(viewModel.isSaving)
+
+                if expandedSection == .relationship {
+                    VStack(spacing: 14) {
+                        DatePicker(
+                            "Official Date",
+                            selection: $relationshipStartDate,
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        .tint(MoonMailTheme.softPurple)
+
+                        Button {
+                            Task {
+                                await viewModel.saveRelationshipStartDate(
+                                    relationshipStartDate,
+                                    coupleId: profile.coupleId
+                                )
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    expandedSection = nil
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(viewModel.isSaving ? "Saving..." : "Save Official Date")
+                                Image(systemName: "heart.circle.fill")
+                            }
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(MoonMailTheme.softPurple)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 22))
+                        }
+                        .disabled(viewModel.isSaving)
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
         }
         .padding(.horizontal)
@@ -212,38 +234,58 @@ struct CoupleSettingsView: View {
 
                     Spacer()
 
-                    if viewModel.isSaving {
+                    if viewModel.isSaving && expandedSection == .reunion {
                         ProgressView()
                     } else {
                         CuteSymbol(name: "calendar", size: 24)
                     }
                 }
 
-                DatePicker(
-                    "Reunion Date",
-                    selection: $reunionDate,
-                    displayedComponents: .date
-                )
-                .datePickerStyle(.graphical)
-                .tint(MoonMailTheme.softPurple)
-
-                Button {
-                    Task {
-                        await viewModel.saveReunionDate(reunionDate, coupleId: profile.coupleId)
+                dateSummaryRow(
+                    icon: "calendar",
+                    title: "Reunion Date",
+                    value: reunionDateText,
+                    isExpanded: expandedSection == .reunion
+                ) {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        expandedSection = expandedSection == .reunion ? nil : .reunion
                     }
-                } label: {
-                    HStack {
-                        Text(viewModel.isSaving ? "Saving..." : "Save Reunion Date")
-                        Image(systemName: "sparkles")
-                    }
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(MoonMailTheme.softPurple)
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 22))
                 }
-                .disabled(viewModel.isSaving)
+
+                if expandedSection == .reunion {
+                    VStack(spacing: 14) {
+                        DatePicker(
+                            "Reunion Date",
+                            selection: $reunionDate,
+                            displayedComponents: .date
+                        )
+                        .datePickerStyle(.graphical)
+                        .labelsHidden()
+                        .tint(MoonMailTheme.softPurple)
+
+                        Button {
+                            Task {
+                                await viewModel.saveReunionDate(reunionDate, coupleId: profile.coupleId)
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    expandedSection = nil
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(viewModel.isSaving ? "Saving..." : "Save Reunion Date")
+                                Image(systemName: "sparkles")
+                            }
+                            .font(.system(size: 17, weight: .bold, design: .rounded))
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(MoonMailTheme.softPurple)
+                            .foregroundStyle(.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 22))
+                        }
+                        .disabled(viewModel.isSaving)
+                    }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                }
             }
         }
         .padding(.horizontal)
@@ -252,7 +294,6 @@ struct CoupleSettingsView: View {
     private var accountCard: some View {
         CuteCard {
             VStack(alignment: .leading, spacing: 14) {
-                SettingRow(icon: "person.fill", title: "Signed in as", value: profile.displayName)
                 SettingRow(icon: "envelope.fill", title: "Email", value: profile.email)
                 SettingRow(icon: "person.2.fill", title: "Moon Room", value: connectionText)
                 SettingRow(icon: "moon.stars.fill", title: "Couple ID", value: profile.coupleId ?? "Not connected")
@@ -274,5 +315,53 @@ struct CoupleSettingsView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 22))
         }
         .padding(.horizontal)
+    }
+
+    private func dateSummaryRow(
+        icon: String,
+        title: String,
+        value: String,
+        isExpanded: Bool,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(MoonMailTheme.softPurple)
+                    .frame(width: 28)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(.system(size: 15, weight: .bold, design: .rounded))
+                        .foregroundStyle(MoonMailTheme.ink)
+
+                    Text(value)
+                        .font(.system(size: 15, weight: .medium, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+
+                Spacer()
+
+                Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 14, weight: .bold))
+                    .foregroundStyle(MoonMailTheme.softPurple)
+            }
+            .padding()
+            .background(Color.white.opacity(0.68))
+            .clipShape(RoundedRectangle(cornerRadius: 18))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func formattedDate(_ date: Date?, emptyText: String) -> String {
+        guard let date else {
+            return emptyText
+        }
+
+        let formatter = DateFormatter()
+        formatter.dateStyle = .long
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
     }
 }
