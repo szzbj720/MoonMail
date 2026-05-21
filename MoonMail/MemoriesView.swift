@@ -14,7 +14,7 @@ struct MemoriesView: View {
     @State private var memoryToDelete: MoonMemory?
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             DoodleBackground()
 
             ScrollView {
@@ -24,25 +24,9 @@ struct MemoriesView: View {
                         .foregroundStyle(MoonMailTheme.ink)
                         .padding(.top, 20)
 
+                    statusBanner
                     uploadCard
-
-                    if viewModel.memories.isEmpty {
-                        emptyStateCard
-                    } else {
-                        LazyVStack(spacing: 14) {
-                            ForEach(viewModel.memories) { memory in
-                                MemoryCard(
-                                    memory: memory,
-                                    currentUserId: profile.uid,
-                                    isDeleting: viewModel.isDeleting,
-                                    onDelete: {
-                                        memoryToDelete = memory
-                                    }
-                                )
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
+                    contentSection
                 }
                 .padding(.bottom, 24)
             }
@@ -52,18 +36,6 @@ struct MemoriesView: View {
         }
         .task(id: selectedPhotoItem) {
             await loadSelectedImage()
-        }
-        .alert("Moon Memories", isPresented: $viewModel.showError) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(viewModel.errorMessage)
-        }
-        .alert("Moon Memories", isPresented: $viewModel.showSuccess) {
-            Button("OK", role: .cancel) {
-                clearDraft()
-            }
-        } message: {
-            Text(viewModel.successMessage)
         }
         .alert("Delete Memory?", isPresented: deleteAlertBinding) {
             Button("Cancel", role: .cancel) {
@@ -82,6 +54,32 @@ struct MemoriesView: View {
         }
     }
 
+    private var contentSection: some View {
+        Group {
+            if viewModel.isInitialLoading && viewModel.memories.isEmpty {
+                loadingStateCard
+                    .padding(.horizontal)
+            } else if viewModel.memories.isEmpty {
+                emptyStateCard
+                    .padding(.horizontal)
+            } else {
+                LazyVStack(spacing: 14) {
+                    ForEach(viewModel.memories) { memory in
+                        MemoryCard(
+                            memory: memory,
+                            currentUserId: profile.uid,
+                            isDeleting: viewModel.isDeleting,
+                            onDelete: {
+                                memoryToDelete = memory
+                            }
+                        )
+                    }
+                }
+                .padding(.horizontal)
+            }
+        }
+    }
+
     private var deleteAlertBinding: Binding<Bool> {
         Binding(
             get: { memoryToDelete != nil },
@@ -91,6 +89,31 @@ struct MemoriesView: View {
                 }
             }
         )
+    }
+
+    private var statusBanner: some View {
+        Group {
+            if viewModel.showError {
+                InlineStatusBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    message: viewModel.errorMessage,
+                    isError: true,
+                    dismiss: viewModel.dismissMessages
+                )
+                .padding(.horizontal)
+            } else if viewModel.showSuccess {
+                InlineStatusBanner(
+                    icon: "checkmark.circle.fill",
+                    message: viewModel.successMessage,
+                    isError: false,
+                    dismiss: {
+                        viewModel.dismissMessages()
+                        clearDraft()
+                    }
+                )
+                .padding(.horizontal)
+            }
+        }
     }
 
     private var uploadCard: some View {
@@ -122,6 +145,16 @@ struct MemoriesView: View {
                             .frame(height: 220)
                             .frame(maxWidth: .infinity)
                             .clipShape(RoundedRectangle(cornerRadius: 24))
+                            .overlay(alignment: .bottomTrailing) {
+                                Label("Change", systemImage: "arrow.triangle.2.circlepath.circle.fill")
+                                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 8)
+                                    .background(Color.black.opacity(0.55))
+                                    .foregroundStyle(.white)
+                                    .clipShape(Capsule())
+                                    .padding(12)
+                            }
                     } else {
                         VStack(spacing: 12) {
                             Image(systemName: "photo.on.rectangle.angled")
@@ -185,10 +218,30 @@ struct MemoriesView: View {
                     .foregroundStyle(.white)
                     .clipShape(RoundedRectangle(cornerRadius: 22))
                 }
-                .disabled(viewModel.isUploading)
+                .disabled(viewModel.isUploading || viewModel.isDeleting)
             }
         }
         .padding(.horizontal)
+    }
+
+    private var loadingStateCard: some View {
+        CuteCard {
+            VStack(spacing: 14) {
+                ProgressView()
+                    .scaleEffect(1.2)
+
+                Text("Loading your Moon Memories...")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(MoonMailTheme.ink)
+
+                Text("Your shared moments will appear here in just a second.")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+        }
     }
 
     private var emptyStateCard: some View {
@@ -200,14 +253,28 @@ struct MemoriesView: View {
                     .font(.system(size: 22, weight: .bold, design: .rounded))
                     .foregroundStyle(MoonMailTheme.ink)
 
-                Text("Upload your first favorite moment and it will appear here.")
+                Text("Upload your first favorite moment and it will appear here for both of you.")
                     .font(.system(size: 15, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
+
+                Button {
+                    viewModel.retryLoading(coupleId: profile.coupleId)
+                } label: {
+                    HStack {
+                        Text("Refresh")
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.85))
+                    .foregroundStyle(MoonMailTheme.ink)
+                    .clipShape(Capsule())
+                }
             }
             .frame(maxWidth: .infinity)
         }
-        .padding(.horizontal)
     }
 
     private func loadSelectedImage() async {
@@ -216,14 +283,14 @@ struct MemoriesView: View {
         do {
             guard let data = try await selectedPhotoItem.loadTransferable(type: Data.self),
                   let image = UIImage(data: data) else {
-                viewModel.errorMessage = "Could not load the selected photo."
+                viewModel.errorMessage = "We couldn't load that photo. Please try another one."
                 viewModel.showError = true
                 return
             }
 
             selectedImage = image
         } catch {
-            viewModel.errorMessage = error.localizedDescription
+            viewModel.errorMessage = "We couldn't load that photo. Please try again."
             viewModel.showError = true
         }
     }
@@ -256,7 +323,12 @@ struct MemoryCard: View {
                             RoundedRectangle(cornerRadius: 24)
                                 .fill(Color.white.opacity(0.72))
 
-                            ProgressView()
+                            VStack(spacing: 10) {
+                                ProgressView()
+                                Text("Loading photo...")
+                                    .font(.system(size: 13, weight: .semibold, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                            }
                         }
                         .frame(height: 220)
 

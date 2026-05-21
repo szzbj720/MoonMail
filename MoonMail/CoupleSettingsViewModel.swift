@@ -24,11 +24,11 @@ final class CoupleSettingsViewModel: ObservableObject {
 
     func startListening(coupleId: String?) {
         guard let coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return
         }
 
-        guard activeCoupleId != coupleId else {
+        if activeCoupleId == coupleId, listener != nil {
             return
         }
 
@@ -42,14 +42,14 @@ final class CoupleSettingsViewModel: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
 
+                    self.isLoading = false
+
                     if let error {
-                        self.isLoading = false
-                        self.show(message: error.localizedDescription)
+                        self.show(message: self.userFacingMessage(for: error))
                         return
                     }
 
                     guard let snapshot, let data = snapshot.data() else {
-                        self.isLoading = false
                         self.couple = nil
                         return
                     }
@@ -69,19 +69,25 @@ final class CoupleSettingsViewModel: ObservableObject {
                         relationshipStartDate: relationshipStartTimestamp?.dateValue(),
                         createdAt: createdTimestamp?.dateValue()
                     )
-
-                    self.isLoading = false
                 }
             }
     }
 
+    func retryLoading(coupleId: String?) {
+        listener?.remove()
+        listener = nil
+        activeCoupleId = nil
+        startListening(coupleId: coupleId)
+    }
+
     func saveReunionDate(_ date: Date, coupleId: String?) async {
         guard let coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return
         }
 
         isSaving = true
+        clearTransientMessages()
 
         do {
             let normalizedDate = Calendar.current.startOfDay(for: date)
@@ -93,21 +99,21 @@ final class CoupleSettingsViewModel: ObservableObject {
                 ], merge: true)
 
             isSaving = false
-            successMessage = "Reunion date saved!"
-            showSuccess = true
+            showSuccess(message: "Reunion date saved!")
         } catch {
             isSaving = false
-            show(message: error.localizedDescription)
+            show(message: userFacingMessage(for: error))
         }
     }
 
     func saveRelationshipStartDate(_ date: Date, coupleId: String?) async {
         guard let coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return
         }
 
         isSaving = true
+        clearTransientMessages()
 
         do {
             let normalizedDate = Calendar.current.startOfDay(for: date)
@@ -119,16 +125,48 @@ final class CoupleSettingsViewModel: ObservableObject {
                 ], merge: true)
 
             isSaving = false
-            successMessage = "Official date saved!"
-            showSuccess = true
+            showSuccess(message: "Official date saved!")
         } catch {
             isSaving = false
-            show(message: error.localizedDescription)
+            show(message: userFacingMessage(for: error))
         }
+    }
+
+    func dismissMessages() {
+        showError = false
+        errorMessage = ""
+        showSuccess = false
+        successMessage = ""
+    }
+
+    private func clearTransientMessages() {
+        errorMessage = ""
+        showError = false
+        successMessage = ""
+        showSuccess = false
     }
 
     private func show(message: String) {
         errorMessage = message
         showError = true
+    }
+
+    private func showSuccess(message: String) {
+        successMessage = message
+        showSuccess = true
+    }
+
+    private func userFacingMessage(for error: Error) -> String {
+        let nsError = error as NSError
+
+        if nsError.domain == FirestoreErrorDomain {
+            return "We couldn't update your Moon Room right now. Please try again in a moment."
+        }
+
+        if !error.localizedDescription.isEmpty {
+            return error.localizedDescription
+        }
+
+        return "Something went wrong. Please try again."
     }
 }

@@ -45,7 +45,7 @@ struct CoupleSettingsView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             DoodleBackground()
 
             ScrollView {
@@ -55,11 +55,9 @@ struct CoupleSettingsView: View {
                         .foregroundStyle(MoonMailTheme.ink)
                         .padding(.top, 20)
 
+                    statusBanner
                     moonCodeCard
-                    partnerCard
-                    relationshipCard
-                    reunionCard
-                    accountCard
+                    contentSection
                     signOutButton
                 }
                 .padding(.bottom, 24)
@@ -80,15 +78,46 @@ struct CoupleSettingsView: View {
             relationshipStartDate = newValue
             hasLoadedInitialRelationshipDate = true
         }
-        .alert("Moon Room", isPresented: $viewModel.showError) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(viewModel.errorMessage)
+    }
+
+    private var statusBanner: some View {
+        Group {
+            if viewModel.showError {
+                InlineStatusBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    message: viewModel.errorMessage,
+                    isError: true,
+                    dismiss: viewModel.dismissMessages
+                )
+                .padding(.horizontal)
+            } else if viewModel.showSuccess {
+                InlineStatusBanner(
+                    icon: "checkmark.circle.fill",
+                    message: viewModel.successMessage,
+                    isError: false,
+                    dismiss: viewModel.dismissMessages
+                )
+                .padding(.horizontal)
+            }
         }
-        .alert("Moon Room", isPresented: $viewModel.showSuccess) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(viewModel.successMessage)
+    }
+
+    private var contentSection: some View {
+        Group {
+            if viewModel.isLoading && viewModel.couple == nil {
+                loadingStateCard
+                    .padding(.horizontal)
+            } else if viewModel.couple == nil {
+                unavailableStateCard
+                    .padding(.horizontal)
+            } else {
+                VStack(spacing: 22) {
+                    partnerCard
+                    relationshipCard
+                    reunionCard
+                    accountCard
+                }
+            }
         }
     }
 
@@ -126,6 +155,59 @@ struct CoupleSettingsView: View {
             }
         }
         .padding(.horizontal)
+    }
+
+    private var loadingStateCard: some View {
+        CuteCard {
+            VStack(spacing: 14) {
+                ProgressView()
+                    .scaleEffect(1.2)
+
+                Text("Loading your Moon Room...")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(MoonMailTheme.ink)
+
+                Text("Your shared details will appear here in just a second.")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+        }
+    }
+
+    private var unavailableStateCard: some View {
+        CuteCard {
+            VStack(spacing: 12) {
+                CuteSymbol(name: "moon.zzz.fill", size: 44)
+
+                Text("Moon Room unavailable")
+                    .font(.system(size: 22, weight: .bold, design: .rounded))
+                    .foregroundStyle(MoonMailTheme.ink)
+
+                Text("We couldn't load your shared room details right now.")
+                    .font(.system(size: 15, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+
+                Button {
+                    viewModel.retryLoading(coupleId: profile.coupleId)
+                } label: {
+                    HStack {
+                        Text("Try Again")
+                        Image(systemName: "arrow.clockwise")
+                    }
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.white.opacity(0.85))
+                    .foregroundStyle(MoonMailTheme.ink)
+                    .clipShape(Capsule())
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
     }
 
     private var partnerCard: some View {
@@ -199,8 +281,10 @@ struct CoupleSettingsView: View {
                                     relationshipStartDate,
                                     coupleId: profile.coupleId
                                 )
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    expandedSection = nil
+                                if !viewModel.showError {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        expandedSection = nil
+                                    }
                                 }
                             }
                         } label: {
@@ -266,8 +350,10 @@ struct CoupleSettingsView: View {
                         Button {
                             Task {
                                 await viewModel.saveReunionDate(reunionDate, coupleId: profile.coupleId)
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    expandedSection = nil
+                                if !viewModel.showError {
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        expandedSection = nil
+                                    }
                                 }
                             }
                         } label: {

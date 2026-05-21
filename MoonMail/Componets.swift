@@ -1,3 +1,5 @@
+// File: Components.swift
+
 import SwiftUI
 import UIKit
 
@@ -11,6 +13,7 @@ struct CuteSymbol: View {
             .font(.system(size: size, weight: .semibold))
             .foregroundStyle(color)
             .symbolRenderingMode(.hierarchical)
+            .accessibilityHidden(true)
     }
 }
 
@@ -86,6 +89,7 @@ struct DoodleBackground: View {
                 .padding(.bottom, 70)
             }
         }
+        .accessibilityHidden(true)
     }
 }
 
@@ -106,6 +110,8 @@ struct LoadingOverlay: View {
             .padding(24)
             .background(Color.white.opacity(0.9))
             .clipShape(RoundedRectangle(cornerRadius: 24))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Loading MoonMail")
         }
     }
 }
@@ -121,11 +127,13 @@ struct CuteTextField: View {
             Image(systemName: icon)
                 .foregroundStyle(MoonMailTheme.softPurple)
                 .frame(width: 24)
+                .accessibilityHidden(true)
 
             TextField(title, text: $text)
                 .keyboardType(keyboardType)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
+                .accessibilityLabel(title)
         }
         .padding()
         .background(Color.white.opacity(0.78))
@@ -143,8 +151,10 @@ struct CuteSecureField: View {
             Image(systemName: icon)
                 .foregroundStyle(MoonMailTheme.softPurple)
                 .frame(width: 24)
+                .accessibilityHidden(true)
 
             SecureField(title, text: $text)
+                .accessibilityLabel(title)
         }
         .padding()
         .background(Color.white.opacity(0.78))
@@ -164,6 +174,7 @@ struct MoonButton: View {
             HStack {
                 Text(title)
                 Image(systemName: icon)
+                    .accessibilityHidden(true)
             }
             .font(.system(size: 17, weight: .bold, design: .rounded))
             .frame(maxWidth: .infinity)
@@ -172,6 +183,7 @@ struct MoonButton: View {
             .foregroundStyle(foreground)
             .clipShape(RoundedRectangle(cornerRadius: 22))
         }
+        .accessibilityLabel(title)
     }
 }
 
@@ -185,6 +197,7 @@ struct AuthNavButton: View {
         HStack {
             Text(title)
             Image(systemName: icon)
+                .accessibilityHidden(true)
         }
         .font(.system(size: 17, weight: .bold, design: .rounded))
         .frame(maxWidth: .infinity)
@@ -192,6 +205,8 @@ struct AuthNavButton: View {
         .background(background)
         .foregroundStyle(foreground)
         .clipShape(RoundedRectangle(cornerRadius: 22))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
     }
 }
 
@@ -216,6 +231,7 @@ struct AuthHeaderView: View {
                 .padding(.horizontal)
         }
         .padding(.top, 35)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -235,12 +251,15 @@ struct PartnerBubble: View {
                     Circle()
                         .stroke(MoonMailTheme.softPurple.opacity(0.35), lineWidth: 2)
                 }
+                .accessibilityHidden(true)
 
             Text(name)
                 .font(.system(size: 15, weight: .bold, design: .rounded))
                 .foregroundStyle(MoonMailTheme.ink)
                 .lineLimit(1)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(name)
     }
 }
 
@@ -254,6 +273,7 @@ struct MoodStatusRow: View {
             Image(systemName: moodIcon)
                 .foregroundStyle(MoonMailTheme.softPurple)
                 .frame(width: 26)
+                .accessibilityHidden(true)
 
             Text(title)
                 .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -268,6 +288,49 @@ struct MoodStatusRow: View {
         .padding()
         .background(Color.white.opacity(0.58))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title) mood: \(moodTitle)")
+    }
+}
+
+struct InlineStatusBanner: View {
+    let icon: String
+    let message: String
+    let isError: Bool
+    let dismiss: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(isError ? .red : .green)
+                .accessibilityHidden(true)
+
+            Text(message)
+                .font(.system(size: 14, weight: .semibold, design: .rounded))
+                .foregroundStyle(MoonMailTheme.ink)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            Button(action: dismiss) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(.secondary)
+                    .padding(8)
+                    .background(Color.white.opacity(0.8))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Dismiss message")
+        }
+        .padding()
+        .background(isError ? MoonMailTheme.blush.opacity(0.85) : MoonMailTheme.cloud.opacity(0.92))
+        .clipShape(RoundedRectangle(cornerRadius: 18))
+        .overlay {
+            RoundedRectangle(cornerRadius: 18)
+                .stroke((isError ? Color.red : Color.green).opacity(0.18), lineWidth: 1.5)
+        }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(message)
     }
 }
 
@@ -280,6 +343,7 @@ struct SignalRow: View {
             Image(systemName: signal.icon)
                 .foregroundStyle(MoonMailTheme.softPurple)
                 .frame(width: 28)
+                .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(signal.title)
@@ -293,19 +357,48 @@ struct SignalRow: View {
 
             Spacer()
 
-            Text(shortTime(signal.createdAt))
+            Text(relativeTime(signal.createdAt))
                 .font(.system(size: 12, weight: .medium, design: .rounded))
                 .foregroundStyle(.secondary)
         }
         .padding()
         .background(isMe ? MoonMailTheme.blush.opacity(0.55) : Color.white.opacity(0.58))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(signal.title), \(isMe ? "sent by me" : "sent by \(signal.senderName)"), \(relativeTime(signal.createdAt))"
+        )
     }
 
-    private func shortTime(_ date: Date) -> String {
+    private func relativeTime(_ date: Date) -> String {
+        let seconds = Int(Date().timeIntervalSince(date))
+
+        if seconds < 10 {
+            return "just now"
+        }
+
+        if seconds < 60 {
+            return "\(seconds)s ago"
+        }
+
+        let minutes = seconds / 60
+        if minutes < 60 {
+            return "\(minutes)m ago"
+        }
+
+        let hours = minutes / 60
+        if hours < 24 {
+            return "\(hours)h ago"
+        }
+
+        let days = hours / 24
+        if days < 7 {
+            return "\(days)d ago"
+        }
+
         let formatter = DateFormatter()
-        formatter.timeStyle = .short
-        formatter.dateStyle = .none
+        formatter.dateStyle = .short
+        formatter.timeStyle = .none
         return formatter.string(from: date)
     }
 }
@@ -326,6 +419,7 @@ struct EmptyNotesCard: View {
                     .multilineTextAlignment(.center)
             }
             .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .combine)
         }
     }
 }
@@ -360,6 +454,8 @@ struct NoteRow: View {
             RoundedRectangle(cornerRadius: 20)
                 .stroke(isMe ? MoonMailTheme.softPurple.opacity(0.25) : Color.white.opacity(0.4), lineWidth: 1.5)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(isMe ? "Me" : note.senderName), \(formattedDate(note.createdAt)), \(note.text)")
     }
 
     private func formattedDate(_ date: Date) -> String {
@@ -379,6 +475,7 @@ struct MemoryTile: View {
             Image(systemName: icon)
                 .font(.system(size: 40, weight: .semibold))
                 .foregroundStyle(MoonMailTheme.softPurple)
+                .accessibilityHidden(true)
 
             Text(title)
                 .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -392,6 +489,8 @@ struct MemoryTile: View {
             RoundedRectangle(cornerRadius: 26)
                 .stroke(MoonMailTheme.softPurple.opacity(0.35), lineWidth: 2)
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(title)
     }
 }
 
@@ -405,6 +504,7 @@ struct SettingRow: View {
             Image(systemName: icon)
                 .foregroundStyle(MoonMailTheme.softPurple)
                 .frame(width: 28)
+                .accessibilityHidden(true)
 
             Text(title)
                 .font(.system(size: 17, weight: .bold, design: .rounded))
@@ -420,5 +520,7 @@ struct SettingRow: View {
         .padding()
         .background(Color.white.opacity(0.68))
         .clipShape(RoundedRectangle(cornerRadius: 18))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(title): \(value)")
     }
 }

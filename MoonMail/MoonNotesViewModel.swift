@@ -1,3 +1,5 @@
+// File: MoonNotesViewModel.swift
+
 import Foundation
 import Combine
 import FirebaseFirestore
@@ -5,9 +7,12 @@ import FirebaseFirestore
 @MainActor
 final class MoonNotesViewModel: ObservableObject {
     @Published var notes: [MoonNote] = []
+    @Published var isInitialLoading = false
     @Published var isSending = false
     @Published var errorMessage = ""
     @Published var showError = false
+    @Published var successMessage = ""
+    @Published var showSuccess = false
 
     private let db = Firestore.firestore()
     private var listener: ListenerRegistration?
@@ -19,16 +24,17 @@ final class MoonNotesViewModel: ObservableObject {
 
     func startListening(coupleId: String?) {
         guard let coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return
         }
 
-        guard activeCoupleId != coupleId else {
+        if activeCoupleId == coupleId, listener != nil {
             return
         }
 
         listener?.remove()
         activeCoupleId = coupleId
+        isInitialLoading = true
 
         listener = db.collection("couples")
             .document(coupleId)
@@ -38,8 +44,10 @@ final class MoonNotesViewModel: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
 
+                    self.isInitialLoading = false
+
                     if let error {
-                        self.show(message: error.localizedDescription)
+                        self.show(message: self.userFacingMessage(for: error))
                         return
                     }
 
@@ -64,6 +72,13 @@ final class MoonNotesViewModel: ObservableObject {
             }
     }
 
+    func retryLoading(coupleId: String?) {
+        listener?.remove()
+        listener = nil
+        activeCoupleId = nil
+        startListening(coupleId: coupleId)
+    }
+
     func sendNote(text: String, profile: MoonMailUserProfile) async -> Bool {
         let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
@@ -73,11 +88,12 @@ final class MoonNotesViewModel: ObservableObject {
         }
 
         guard let coupleId = profile.coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return false
         }
 
         isSending = true
+        clearTransientMessages()
 
         do {
             try await db.collection("couples")
@@ -91,16 +107,50 @@ final class MoonNotesViewModel: ObservableObject {
                 ])
 
             isSending = false
+            showSuccess(message: "Moon Note sent.")
             return true
         } catch {
             isSending = false
-            show(message: error.localizedDescription)
+            show(message: userFacingMessage(for: error))
             return false
         }
+    }
+
+    func dismissMessages() {
+        showError = false
+        errorMessage = ""
+        showSuccess = false
+        successMessage = ""
+    }
+
+    private func clearTransientMessages() {
+        errorMessage = ""
+        showError = false
+        successMessage = ""
+        showSuccess = false
     }
 
     private func show(message: String) {
         errorMessage = message
         showError = true
+    }
+
+    private func showSuccess(message: String) {
+        successMessage = message
+        showSuccess = true
+    }
+
+    private func userFacingMessage(for error: Error) -> String {
+        let nsError = error as NSError
+
+        if nsError.domain == FirestoreErrorDomain {
+            return "We couldn't sync your Moon Notes right now. Please try again in a moment."
+        }
+
+        if !error.localizedDescription.isEmpty {
+            return error.localizedDescription
+        }
+
+        return "Something went wrong. Please try again."
     }
 }

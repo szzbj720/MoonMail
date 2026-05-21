@@ -10,6 +10,7 @@ import FirebaseStorage
 @MainActor
 final class MemoriesViewModel: ObservableObject {
     @Published var memories: [MoonMemory] = []
+    @Published var isInitialLoading = false
     @Published var isUploading = false
     @Published var isDeleting = false
     @Published var errorMessage = ""
@@ -40,16 +41,17 @@ final class MemoriesViewModel: ObservableObject {
 
     func startListening(coupleId: String?) {
         guard let coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return
         }
 
-        guard activeCoupleId != coupleId else {
+        if activeCoupleId == coupleId, listener != nil {
             return
         }
 
         listener?.remove()
         activeCoupleId = coupleId
+        isInitialLoading = true
 
         listener = db.collection("couples")
             .document(coupleId)
@@ -59,8 +61,10 @@ final class MemoriesViewModel: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
 
+                    self.isInitialLoading = false
+
                     if let error {
-                        self.show(message: error.localizedDescription)
+                        self.show(message: self.userFacingMessage(for: error))
                         return
                     }
 
@@ -88,6 +92,13 @@ final class MemoriesViewModel: ObservableObject {
             }
     }
 
+    func retryLoading(coupleId: String?) {
+        listener?.remove()
+        listener = nil
+        activeCoupleId = nil
+        startListening(coupleId: coupleId)
+    }
+
     func uploadMemory(
         title: String,
         caption: String,
@@ -98,21 +109,22 @@ final class MemoriesViewModel: ObservableObject {
         let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
 
         guard !trimmedTitle.isEmpty else {
-            show(message: "Please add a title for your memory.")
+            show(message: "Please add a title before saving your memory.")
             return
         }
 
         guard let coupleId = profile.coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return
         }
 
         guard let imageData = image.jpegData(compressionQuality: 0.82) else {
-            show(message: "Could not prepare the image for upload.")
+            show(message: "We couldn't prepare that photo for upload. Please try another image.")
             return
         }
 
         isUploading = true
+        clearTransientMessages()
 
         do {
             let memoryDocument = db.collection("couples")
@@ -140,17 +152,16 @@ final class MemoriesViewModel: ObservableObject {
             ])
 
             isUploading = false
-            successMessage = "Memory saved!"
-            showSuccess = true
+            showSuccess(message: "Memory saved to your Moon Room.")
         } catch {
             isUploading = false
-            show(message: error.localizedDescription)
+            show(message: userFacingMessage(for: error))
         }
     }
 
     func deleteMemory(_ memory: MoonMemory, profile: MoonMailUserProfile) async {
         guard let coupleId = profile.coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return
         }
 
@@ -160,6 +171,7 @@ final class MemoriesViewModel: ObservableObject {
         }
 
         isDeleting = true
+        clearTransientMessages()
 
         do {
             if !memory.storagePath.isEmpty {
@@ -177,16 +189,52 @@ final class MemoriesViewModel: ObservableObject {
                 .delete()
 
             isDeleting = false
-            successMessage = "Memory deleted."
-            showSuccess = true
+            showSuccess(message: "Memory deleted.")
         } catch {
             isDeleting = false
-            show(message: error.localizedDescription)
+            show(message: userFacingMessage(for: error))
         }
+    }
+
+    func dismissMessages() {
+        showError = false
+        errorMessage = ""
+        showSuccess = false
+        successMessage = ""
+    }
+
+    private func clearTransientMessages() {
+        errorMessage = ""
+        showError = false
+        successMessage = ""
+        showSuccess = false
     }
 
     private func show(message: String) {
         errorMessage = message
         showError = true
+    }
+
+    private func showSuccess(message: String) {
+        successMessage = message
+        showSuccess = true
+    }
+
+    private func userFacingMessage(for error: Error) -> String {
+        let nsError = error as NSError
+
+        if nsError.domain == FirestoreErrorDomain {
+            return "We couldn't sync your memories right now. Please try again in a moment."
+        }
+
+        if nsError.domain == StorageErrorDomain {
+            return "Your photo couldn't be uploaded right now. Please try again."
+        }
+
+        if !error.localizedDescription.isEmpty {
+            return error.localizedDescription
+        }
+
+        return "Something went wrong. Please try again."
     }
 }

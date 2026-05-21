@@ -22,12 +22,13 @@ struct HomeView: View {
     }
 
     var body: some View {
-        ZStack {
+        ZStack(alignment: .top) {
             DoodleBackground()
 
             ScrollView {
                 VStack(spacing: 22) {
                     header
+                    signalsStatusBanner
                     TogetherSinceCard(
                         currentUserName: profile.displayName,
                         partnerName: partnerName,
@@ -36,7 +37,7 @@ struct HomeView: View {
                     NextMoonriseCard(reunionDate: coupleViewModel.couple?.reunionDate)
                     MoonMoodCard(profile: profile, moods: moods, viewModel: moodViewModel)
                     MoonSignalsGrid(profile: profile, viewModel: signalsViewModel)
-                    RecentMoonSignalsCard(profile: profile, viewModel: signalsViewModel)
+                    signalsContentSection
                     LatestMoonNoteCard()
                 }
                 .padding()
@@ -51,16 +52,6 @@ struct HomeView: View {
             Button("OK", role: .cancel) { }
         } message: {
             Text(moodViewModel.errorMessage)
-        }
-        .alert("Moon Signals Error", isPresented: $signalsViewModel.showError) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(signalsViewModel.errorMessage)
-        }
-        .alert("Moon Signals", isPresented: $signalsViewModel.showSuccess) {
-            Button("OK", role: .cancel) { }
-        } message: {
-            Text(signalsViewModel.successMessage)
         }
         .alert("Moon Room", isPresented: $coupleViewModel.showError) {
             Button("OK", role: .cancel) { }
@@ -85,6 +76,56 @@ struct HomeView: View {
         }
         .padding(.top, 15)
     }
+
+    private var signalsStatusBanner: some View {
+        Group {
+            if signalsViewModel.showError {
+                InlineStatusBanner(
+                    icon: "exclamationmark.triangle.fill",
+                    message: signalsViewModel.errorMessage,
+                    isError: true,
+                    dismiss: signalsViewModel.dismissMessages
+                )
+            } else if signalsViewModel.showSuccess {
+                InlineStatusBanner(
+                    icon: "checkmark.circle.fill",
+                    message: signalsViewModel.successMessage,
+                    isError: false,
+                    dismiss: signalsViewModel.dismissMessages
+                )
+            }
+        }
+    }
+
+    private var signalsContentSection: some View {
+        Group {
+            if signalsViewModel.isInitialLoading && signalsViewModel.signals.isEmpty {
+                signalsLoadingCard
+            } else {
+                RecentMoonSignalsCard(profile: profile, viewModel: signalsViewModel)
+            }
+        }
+    }
+
+    private var signalsLoadingCard: some View {
+        CuteCard {
+            VStack(spacing: 14) {
+                ProgressView()
+                    .scaleEffect(1.2)
+
+                Text("Loading recent signals...")
+                    .font(.system(size: 18, weight: .bold, design: .rounded))
+                    .foregroundStyle(MoonMailTheme.ink)
+
+                Text("Your latest little moments will appear here in just a second.")
+                    .font(.system(size: 14, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 6)
+        }
+    }
 }
 
 struct TogetherSinceCard: View {
@@ -93,22 +134,11 @@ struct TogetherSinceCard: View {
     let relationshipStartDate: Date?
 
     private var daysTogether: Int? {
-        guard let relationshipStartDate else { return nil }
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: relationshipStartDate)
-        let end = calendar.startOfDay(for: Date())
-        return calendar.dateComponents([.day], from: start, to: end).day.map { max($0 + 1, 1) }
+        MoonDateLogic.daysTogether(since: relationshipStartDate)
     }
 
     private var officialDateText: String {
-        guard let relationshipStartDate else {
-            return "Set your official date in the Us tab"
-        }
-
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.timeStyle = .none
-        return "Official since \(formatter.string(from: relationshipStartDate))"
+        MoonDateLogic.officialDateText(for: relationshipStartDate)
     }
 
     private var countText: String {
@@ -119,10 +149,7 @@ struct TogetherSinceCard: View {
     }
 
     private var subtitleText: String {
-        guard let daysTogether else {
-            return "days together"
-        }
-        return daysTogether == 1 ? "day together" : "days together"
+        MoonDateLogic.togetherSubtitle(for: daysTogether)
     }
 
     var body: some View {
@@ -175,22 +202,11 @@ struct NextMoonriseCard: View {
     let reunionDate: Date?
 
     private var countdownDays: Int? {
-        guard let reunionDate else { return nil }
-        let calendar = Calendar.current
-        let start = calendar.startOfDay(for: Date())
-        let end = calendar.startOfDay(for: reunionDate)
-        return calendar.dateComponents([.day], from: start, to: end).day
+        MoonDateLogic.reunionCountdownDays(until: reunionDate)
     }
 
     private var reunionDateText: String {
-        guard let reunionDate else {
-            return "Set your reunion date in the Us tab"
-        }
-
-        let formatter = DateFormatter()
-        formatter.dateStyle = .long
-        formatter.timeStyle = .none
-        return formatter.string(from: reunionDate)
+        MoonDateLogic.reunionDateText(for: reunionDate)
     }
 
     private var countdownText: String {
@@ -201,15 +217,7 @@ struct NextMoonriseCard: View {
     }
 
     private var subtitleText: String {
-        guard let countdownDays else {
-            return "days until we meet again"
-        }
-
-        if countdownDays <= 0 {
-            return "your moonrise is here"
-        }
-
-        return countdownDays == 1 ? "day until we meet again" : "days until we meet again"
+        MoonDateLogic.reunionSubtitle(for: countdownDays)
     }
 
     var body: some View {
@@ -240,26 +248,12 @@ struct NextMoonriseCard: View {
                     .foregroundStyle(MoonMailTheme.ink)
 
                 if let countdownDays, countdownDays > 0 {
-                    ProgressView(value: progressValue(until: reunionDate))
+                    ProgressView(value: MoonDateLogic.reunionProgress(until: reunionDate))
                         .tint(MoonMailTheme.blush)
                         .scaleEffect(x: 1, y: 1.5)
                 }
             }
         }
-    }
-
-    private func progressValue(until reunionDate: Date?) -> Double {
-        guard
-            let reunionDate,
-            let days = countdownDays,
-            days > 0
-        else {
-            return 0
-        }
-
-        let totalWindow = max(days + 30, 1)
-        let elapsed = totalWindow - days
-        return min(max(Double(elapsed) / Double(totalWindow), 0), 1)
     }
 }
 
@@ -406,17 +400,45 @@ struct RecentMoonSignalsCard: View {
 
                     Spacer()
 
-                    CuteSymbol(name: "sparkles", size: 26)
+                    HStack(spacing: 8) {
+                        if viewModel.isInitialLoading && viewModel.signals.isEmpty {
+                            ProgressView()
+                                .scaleEffect(0.9)
+                        } else {
+                            CuteSymbol(name: "sparkles", size: 26)
+                        }
+
+                        if viewModel.signals.isEmpty {
+                            Button {
+                                viewModel.retryLoading(coupleId: profile.coupleId)
+                            } label: {
+                                Image(systemName: "arrow.clockwise")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(MoonMailTheme.softPurple)
+                                    .padding(8)
+                                    .background(Color.white.opacity(0.8))
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
                 }
 
                 if viewModel.signals.isEmpty {
-                    Text("No Moon Signals yet. Send one to make your partner smile.")
-                        .font(.system(size: 15, weight: .medium, design: .rounded))
-                        .foregroundStyle(.secondary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding()
-                        .background(Color.white.opacity(0.58))
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
+                    VStack(spacing: 12) {
+                        Text("No Moon Signals yet")
+                            .font(.system(size: 18, weight: .bold, design: .rounded))
+                            .foregroundStyle(MoonMailTheme.ink)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Text("Send a little signal above to make your partner smile.")
+                            .font(.system(size: 15, weight: .medium, design: .rounded))
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    .padding()
+                    .background(Color.white.opacity(0.58))
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
                 } else {
                     VStack(spacing: 10) {
                         ForEach(viewModel.signals.prefix(4)) { signal in

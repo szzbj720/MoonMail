@@ -7,6 +7,7 @@ import FirebaseFirestore
 @MainActor
 final class MoonSignalsViewModel: ObservableObject {
     @Published var signals: [MoonSignalStatus] = []
+    @Published var isInitialLoading = false
     @Published var isSending = false
     @Published var errorMessage = ""
     @Published var showError = false
@@ -23,16 +24,17 @@ final class MoonSignalsViewModel: ObservableObject {
 
     func startListening(coupleId: String?) {
         guard let coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return
         }
 
-        guard activeCoupleId != coupleId else {
+        if activeCoupleId == coupleId, listener != nil {
             return
         }
 
         listener?.remove()
         activeCoupleId = coupleId
+        isInitialLoading = true
 
         listener = db.collection("couples")
             .document(coupleId)
@@ -43,8 +45,10 @@ final class MoonSignalsViewModel: ObservableObject {
                 Task { @MainActor in
                     guard let self else { return }
 
+                    self.isInitialLoading = false
+
                     if let error {
-                        self.show(message: error.localizedDescription)
+                        self.show(message: self.userFacingMessage(for: error))
                         return
                     }
 
@@ -70,13 +74,21 @@ final class MoonSignalsViewModel: ObservableObject {
             }
     }
 
+    func retryLoading(coupleId: String?) {
+        listener?.remove()
+        listener = nil
+        activeCoupleId = nil
+        startListening(coupleId: coupleId)
+    }
+
     func sendSignal(_ signal: MoonSignal, profile: MoonMailUserProfile) async {
         guard let coupleId = profile.coupleId else {
-            show(message: "No Moon Room found for this account.")
+            show(message: "Your account is not connected to a Moon Room yet.")
             return
         }
 
         isSending = true
+        clearTransientMessages()
 
         do {
             try await db.collection("couples")
@@ -91,16 +103,48 @@ final class MoonSignalsViewModel: ObservableObject {
                 ])
 
             isSending = false
-            successMessage = "\(signal.title) sent!"
-            showSuccess = true
+            showSuccess(message: "\(signal.title) sent!")
         } catch {
             isSending = false
-            show(message: error.localizedDescription)
+            show(message: userFacingMessage(for: error))
         }
+    }
+
+    func dismissMessages() {
+        showError = false
+        errorMessage = ""
+        showSuccess = false
+        successMessage = ""
+    }
+
+    private func clearTransientMessages() {
+        errorMessage = ""
+        showError = false
+        successMessage = ""
+        showSuccess = false
     }
 
     private func show(message: String) {
         errorMessage = message
         showError = true
+    }
+
+    private func showSuccess(message: String) {
+        successMessage = message
+        showSuccess = true
+    }
+
+    private func userFacingMessage(for error: Error) -> String {
+        let nsError = error as NSError
+
+        if nsError.domain == FirestoreErrorDomain {
+            return "We couldn't sync your Moon Signals right now. Please try again in a moment."
+        }
+
+        if !error.localizedDescription.isEmpty {
+            return error.localizedDescription
+        }
+
+        return "Something went wrong. Please try again."
     }
 }
