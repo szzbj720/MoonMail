@@ -26,14 +26,12 @@ final class MemoriesViewModel: ObservableObject {
         let bucket = FirebaseApp.app()?.options.storageBucket ?? ""
 
         if bucket.hasPrefix("gs://") {
-            self.storage = Storage.storage(url: bucket)
+            storage = Storage.storage(url: bucket)
         } else if !bucket.isEmpty {
-            self.storage = Storage.storage(url: "gs://\(bucket)")
+            storage = Storage.storage(url: "gs://\(bucket)")
         } else {
-            self.storage = Storage.storage()
+            storage = Storage.storage()
         }
-
-        print("🪣 Firebase Storage bucket:", FirebaseApp.app()?.options.storageBucket ?? "missing")
     }
 
     deinit {
@@ -128,11 +126,8 @@ final class MemoriesViewModel: ObservableObject {
             let metadata = StorageMetadata()
             metadata.contentType = "image/jpeg"
 
-            let returnedMetadata = try await storageRef.putDataAsync(imageData, metadata: metadata)
-            print("✅ Uploaded memory path:", returnedMetadata.path ?? storagePath)
-
+            _ = try await storageRef.putDataAsync(imageData, metadata: metadata)
             let downloadURL = try await storageRef.downloadURL()
-            print("✅ Memory download URL:", downloadURL.absoluteString)
 
             try await memoryDocument.setData([
                 "title": trimmedTitle,
@@ -149,7 +144,6 @@ final class MemoriesViewModel: ObservableObject {
             showSuccess = true
         } catch {
             isUploading = false
-            print("❌ Memory upload error:", error.localizedDescription)
             show(message: error.localizedDescription)
         }
     }
@@ -160,17 +154,20 @@ final class MemoriesViewModel: ObservableObject {
             return
         }
 
+        guard memory.senderId == profile.uid else {
+            show(message: "You can only delete memories you uploaded.")
+            return
+        }
+
         isDeleting = true
 
         do {
             if !memory.storagePath.isEmpty {
                 let storageRef = storage.reference(withPath: memory.storagePath)
                 try await storageRef.delete()
-                print("🗑️ Deleted storage object:", memory.storagePath)
             } else if !memory.imageURL.isEmpty {
                 let storageRef = storage.reference(forURL: memory.imageURL)
                 try await storageRef.delete()
-                print("🗑️ Deleted storage object from URL")
             }
 
             try await db.collection("couples")
@@ -184,7 +181,6 @@ final class MemoriesViewModel: ObservableObject {
             showSuccess = true
         } catch {
             isDeleting = false
-            print("❌ Memory delete error:", error.localizedDescription)
             show(message: error.localizedDescription)
         }
     }

@@ -33,7 +33,7 @@ struct MemoriesView: View {
                             ForEach(viewModel.memories) { memory in
                                 MemoryCard(
                                     memory: memory,
-                                    isMe: memory.senderId == profile.uid,
+                                    currentUserId: profile.uid,
                                     isDeleting: viewModel.isDeleting,
                                     onDelete: {
                                         memoryToDelete = memory
@@ -238,9 +238,13 @@ struct MemoriesView: View {
 
 struct MemoryCard: View {
     let memory: MoonMemory
-    let isMe: Bool
+    let currentUserId: String
     let isDeleting: Bool
     let onDelete: () -> Void
+
+    private var isOwner: Bool {
+        memory.senderId == currentUserId
+    }
 
     var body: some View {
         CuteCard {
@@ -293,15 +297,17 @@ struct MemoryCard: View {
 
                     Spacer()
 
-                    Button(role: .destructive, action: onDelete) {
-                        Image(systemName: "trash.fill")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(.red)
-                            .padding(10)
-                            .background(Color.white.opacity(0.8))
-                            .clipShape(Circle())
+                    if isOwner {
+                        Button(role: .destructive, action: onDelete) {
+                            Image(systemName: "trash.fill")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(.red)
+                                .padding(10)
+                                .background(Color.white.opacity(0.8))
+                                .clipShape(Circle())
+                        }
+                        .disabled(isDeleting)
                     }
-                    .disabled(isDeleting)
                 }
 
                 if !memory.caption.isEmpty {
@@ -311,7 +317,7 @@ struct MemoryCard: View {
                 }
 
                 HStack {
-                    Text(isMe ? "Saved by me" : "Saved by \(memory.senderName)")
+                    Text(isOwner ? "Saved by me" : "Saved by \(memory.senderName)")
                         .font(.system(size: 13, weight: .bold, design: .rounded))
                         .foregroundStyle(MoonMailTheme.softPurple)
 
