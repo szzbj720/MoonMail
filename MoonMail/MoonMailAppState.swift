@@ -1,3 +1,5 @@
+// File: MoonMailAppState.swift
+
 import Foundation
 import Combine
 import FirebaseAuth
@@ -54,7 +56,6 @@ final class MoonMailAppState: ObservableObject {
                 "partnerOneName": trimmedName,
                 "partnerTwoId": "",
                 "partnerTwoName": "",
-                "reunionDate": "",
                 "createdAt": FieldValue.serverTimestamp()
             ])
 

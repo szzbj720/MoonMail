@@ -84,11 +84,13 @@ final class CoupleSettingsViewModel: ObservableObject {
         isSaving = true
 
         do {
+            let normalizedDate = Calendar.current.startOfDay(for: date)
+
             try await db.collection("couples")
                 .document(coupleId)
-                .updateData([
-                    "reunionDate": Timestamp(date: date)
-                ])
+                .setData([
+                    "reunionDate": Timestamp(date: normalizedDate)
+                ], merge: true)
 
             isSaving = false
             successMessage = "Reunion date saved!"
@@ -108,11 +110,13 @@ final class CoupleSettingsViewModel: ObservableObject {
         isSaving = true
 
         do {
+            let normalizedDate = Calendar.current.startOfDay(for: date)
+
             try await db.collection("couples")
                 .document(coupleId)
-                .updateData([
-                    "relationshipStartDate": Timestamp(date: date)
-                ])
+                .setData([
+                    "relationshipStartDate": Timestamp(date: normalizedDate)
+                ], merge: true)
 
             isSaving = false
             successMessage = "Official date saved!"
