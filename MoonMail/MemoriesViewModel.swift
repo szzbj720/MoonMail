@@ -132,7 +132,7 @@ final class MemoriesViewModel: ObservableObject {
                 .collection("memories")
                 .document()
 
-            let storagePath = "couples/\(coupleId)/memories/\(memoryDocument.documentID).jpg"
+            let storagePath = "couples/\(coupleId)/memories/\(profile.uid)/\(memoryDocument.documentID).jpg"
             let storageRef = storage.reference(withPath: storagePath)
 
             let metadata = StorageMetadata()

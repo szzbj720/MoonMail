@@ -1,3 +1,5 @@
+// File: MoonMailApp.swift
+
 import SwiftUI
 import FirebaseCore
 
@@ -7,7 +9,7 @@ struct MoonMailApp: App {
         FirebaseApp.configure()
 
         if let options = FirebaseApp.app()?.options {
-            print("🔥 Firebase projectID:", options.projectID)
+            print("🔥 Firebase projectID:", options.projectID ?? "missing")
             print("🔥 Firebase googleAppID:", options.googleAppID)
             print("🔥 Firebase bundleID:", options.bundleID)
         } else {

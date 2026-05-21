@@ -11,6 +11,7 @@
 		AB8DD3832FBE4715002EE239 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = AB8DD3822FBE4715002EE239 /* FirebaseFirestore */; };
 		AB8DD3852FBE4715002EE239 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = AB8DD3842FBE4715002EE239 /* FirebaseStorage */; };
 		AB8DD3B52FBE9F70002EE239 /* README.md in Resources */ = {isa = PBXBuildFile; fileRef = AB8DD3B32FBE9F63002EE239 /* README.md */; };
+		AB8DD3FD2FBF8FC0002EE239 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = AB8DD3FC2FBF8FC0002EE239 /* FirebaseMessaging */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +48,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB8DD3FD2FBF8FC0002EE239 /* FirebaseMessaging in Frameworks */,
 				AB8DD3812FBE4715002EE239 /* FirebaseAuth in Frameworks */,
 				AB8DD3832FBE4715002EE239 /* FirebaseFirestore in Frameworks */,
 				AB8DD3852FBE4715002EE239 /* FirebaseStorage in Frameworks */,
@@ -70,6 +72,7 @@
 				AB8DD3E42FBF8236002EE239 /* MoonMailTests */,
 				AB8DD3702FBE405F002EE239 /* Products */,
 				AB8DD3B32FBE9F63002EE239 /* README.md */,
+				AB8DD3FB2FBF8FC0002EE239 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -80,6 +83,13 @@
 				AB8DD3E32FBF8236002EE239 /* MoonMailTests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		AB8DD3FB2FBF8FC0002EE239 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -105,6 +115,7 @@
 				AB8DD3802FBE4715002EE239 /* FirebaseAuth */,
 				AB8DD3822FBE4715002EE239 /* FirebaseFirestore */,
 				AB8DD3842FBE4715002EE239 /* FirebaseStorage */,
+				AB8DD3FC2FBF8FC0002EE239 /* FirebaseMessaging */,
 			);
 			productName = MoonMail;
 			productReference = AB8DD36F2FBE405F002EE239 /* MoonMail.app */;
@@ -504,6 +515,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = AB8DD37F2FBE4715002EE239 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseStorage;
+		};
+		AB8DD3FC2FBF8FC0002EE239 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AB8DD37F2FBE4715002EE239 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};
