@@ -1,11 +1,26 @@
-
 # MoonMail 🌙💜
 
-MoonMail is a cute long-distance couples app built with **SwiftUI** and **Firebase**. It gives two partners a private shared **Moon Room** where they can stay connected through notes, moods, signals, memories, and relationship milestones.
+MoonMail is a cozy long-distance couples app built with **SwiftUI** and **Firebase**. It gives two partners a private shared **Moon Room** where they can stay connected through notes, moods, memories, signals, and relationship milestones.
 
 ## Overview
 
-MoonMail is designed for couples who want a soft, cozy, private digital space together. One partner creates a Moon Room and gets a unique Moon Code. The second partner joins using that code. Once connected, both partners share the same room and can interact in real time.
+MoonMail is designed for couples who want a soft, private digital space together. One partner creates a Moon Room and receives a unique **Moon Code**. The second partner joins using that code. Once connected, both partners share the same room and can interact in real time.
+
+## Screenshots
+
+<p align="center">
+  <img src="MoonMail/screenshots/Welcome.png" alt="Welcome Screen" width="220" />
+  <img src="MoonMail/screenshots/CreateAccount.png" alt="Create Account Screen" width="220" />
+  <img src="MoonMail/screenshots/Login.png" alt="Login Screen" width="220" />
+  <img src="MoonMail/screenshots/Join.png" alt="Join Screen" width="220" />
+</p>
+
+<p align="center">
+  <img src="MoonMail/screenshots/Home.png" alt="Home Screen" width="220" />
+  <img src="MoonMail/screenshots/Notes.png" alt="Notes Screen" width="220" />
+  <img src="MoonMail/screenshots/Memories.png" alt="Memories Screen" width="220" />
+  <img src="MoonMail/screenshots/Us.png" alt="Us Screen" width="220" />
+</p>
 
 ## Features
 
@@ -22,22 +37,26 @@ MoonMail is designed for couples who want a soft, cozy, private digital space to
 - Displays a **Next Moonrise** reunion countdown
 - Shows shared Moon Mood updates
 - Shows shared Moon Signals
-- Shows a latest note preview card
+- Shows recent signal activity
 
 ### Moon Notes
 - Real-time shared notes between partners
-- Stored in Firestore under the couple document
+- Notes are stored under the shared couple document
+- Loading, success, error, and empty states polished
 
 ### Moon Mood
 - Real-time mood updates for both partners
 - Cute icon-based mood selection
+- Shared mood visibility between both partners
 
 ### Moon Signals
-- Real-time quick affection actions such as:
+- Real-time affection actions such as:
   - Moon Hug
   - Leave Star
   - Dream of Me
   - Moon Kiss
+- Recent signal feed on the Home screen
+- Improved loading, success, error, and empty states
 
 ### Moon Memories
 - Upload photos with a title and caption
@@ -45,6 +64,7 @@ MoonMail is designed for couples who want a soft, cozy, private digital space to
 - Memory metadata stored in Firestore
 - Both partners can view memories
 - Only the uploader can delete their own memory
+- Improved upload, loading, success, error, and empty states
 
 ### Us Tab
 - Shows Moon Code
@@ -54,6 +74,19 @@ MoonMail is designed for couples who want a soft, cozy, private digital space to
   - Reunion date
 - Uses compact expandable date rows
 - Includes copy-code feedback
+- Reads live couple data from Firestore
+
+## Technical Highlights
+
+- Built with **SwiftUI** using a multi-file architecture
+- Uses **Firebase Authentication** for account creation and login
+- Uses **Cloud Firestore** for real-time shared data
+- Uses **Firebase Storage** for memory image uploads
+- Enforces a **two-person room limit**
+- Uses **Firestore rules** and **Storage rules** for access control
+- Includes **unit tests** for core date logic, partner-name logic, and signal time formatting
+- Includes accessibility improvements across shared UI components
+- Includes polished loading, success, error, and empty states
 
 ## Tech Stack
 
