@@ -1,10 +1,38 @@
 # MoonMail 🌙💜
 
-MoonMail is a cozy long-distance couples app built with **SwiftUI** and **Firebase**. It gives two partners a private shared **Moon Room** where they can stay connected through notes, moods, memories, signals, and relationship milestones.
+MoonMail is an iOS app I built for long-distance couples who want a softer and more personal way to stay connected. The idea came from wanting to create something more intimate than a normal messaging app. Instead of focusing only on texting, MoonMail gives two partners a private shared space where they can leave notes, share moods, save memories, send small affection signals, and keep track of important relationship dates.
+
+I built the app with SwiftUI and Firebase, with a real shared-room flow where one partner creates a private Moon Room and the other joins using a unique Moon Code.
+
+---
+
+## Why I Built This
+
+I wanted MoonMail to feel like a small digital home for two people.
+
+A lot of relationship apps focus on messages, calendars, or generic tracking features, but I wanted to build something that felt more emotional and personal. For long-distance couples especially, staying connected is not always about having a full conversation. Sometimes it is just about sending a small signal, saving a memory, or seeing that your partner updated their mood.
+
+That was the main reason I built MoonMail. I wanted to design an app where two people could share a private space that feels calm, warm, and intentional.
+
+This project also gave me a chance to practice building a real iOS app with authentication, real-time shared data, image uploads, and Firebase security rules.
+
+---
 
 ## Overview
 
-MoonMail is designed for couples who want a soft, private digital space together. One partner creates a Moon Room and receives a unique **Moon Code**. The second partner joins using that code. Once connected, both partners share the same room and can interact in real time.
+MoonMail lets two partners connect inside a private shared Moon Room.
+
+One partner creates a room and receives a unique Moon Code. The second partner uses that code to join. Once both people are connected, they can see shared notes, moods, memories, signals, and relationship milestones in real time.
+
+The app is designed around a simple idea: long-distance connection should feel easy, private, and emotionally meaningful.
+
+---
+
+## Demo
+
+Screenshots below show the main onboarding flow, shared home screen, notes, memories, and relationship settings.
+
+---
 
 ## Screenshots
 
@@ -22,102 +50,297 @@ MoonMail is designed for couples who want a soft, private digital space together
   <img src="MoonMail/screenshots/Us.png" alt="Us Screen" width="220" />
 </p>
 
+---
+
+## How the App Works
+
+MoonMail starts with an authentication and room-connection flow.
+
+A user can create an account, create a Moon Room, and receive a unique Moon Code. Their partner can then create an account and join the same room using that code. Once connected, both users share the same couple document in Firestore.
+
+I designed it this way because I wanted the app to feel private and intentional. The room code makes the experience feel more personal than simply searching for a username or adding a random contact.
+
+Each Moon Room is limited to two people, which keeps the app focused on the couple experience.
+
+---
+
 ## Features
 
-### Authentication + Moon Room Flow
-- Create a new private Moon Room
-- Generate a unique Moon Code
-- Join an existing Moon Room using that code
-- Log in with email and password using Firebase Authentication
-- Limit each Moon Room to exactly 2 people
+### Authentication and Moon Room Flow
+
+* Create an account with email and password
+* Log in using Firebase Authentication
+* Create a private Moon Room
+* Generate a unique Moon Code
+* Join an existing Moon Room using that code
+* Limit each Moon Room to exactly two people
+* Store user and couple data in Firestore
 
 ### Home
-- Shows both real partner names from Firestore
-- Displays a **Together Since** card with days together
-- Displays a **Next Moonrise** reunion countdown
-- Shows shared Moon Mood updates
-- Shows shared Moon Signals
-- Shows recent signal activity
+
+The Home screen acts as the couple’s shared dashboard.
+
+It shows both partners’ names, relationship milestones, recent signals, and shared mood updates. I wanted this screen to feel like the center of the app, where both people can quickly see what is happening in their shared space.
+
+Home includes:
+
+* Real partner names loaded from Firestore
+* Together Since card
+* Days together calculation
+* Next Moonrise reunion countdown
+* Shared Moon Mood updates
+* Shared Moon Signals
+* Recent signal activity
 
 ### Moon Notes
-- Real-time shared notes between partners
-- Notes are stored under the shared couple document
-- Loading, success, error, and empty states polished
+
+Moon Notes lets partners leave shared notes for each other.
+
+I wanted this feature to feel lighter than a full messaging system. It is meant for small thoughts, reminders, sweet messages, or anything the couple wants to keep in their shared space.
+
+Moon Notes includes:
+
+* Real-time shared notes
+* Notes stored under the shared couple document
+* Loading, success, error, and empty states
+* Shared visibility between both partners
 
 ### Moon Mood
-- Real-time mood updates for both partners
-- Cute icon-based mood selection
-- Shared mood visibility between both partners
+
+Moon Mood lets each partner update how they are feeling.
+
+I added this because long-distance communication is not always about sending a full message. Sometimes it helps to quickly see your partner’s mood and feel more connected throughout the day.
+
+Moon Mood includes:
+
+* Real-time mood updates
+* Cute icon-based mood selection
+* Mood visibility for both partners
+* Firestore-backed shared state
 
 ### Moon Signals
-- Real-time affection actions such as:
-  - Moon Hug
-  - Leave Star
-  - Dream of Me
-  - Moon Kiss
-- Recent signal feed on the Home screen
-- Improved loading, success, error, and empty states
+
+Moon Signals are small affection actions that partners can send to each other.
+
+This was one of my favorite features to design because I wanted the app to support simple, low-pressure ways to connect. Instead of needing to write something, a user can send a quick emotional signal.
+
+Signals include:
+
+* Moon Hug
+* Leave Star
+* Dream of Me
+* Moon Kiss
+
+The Home screen also shows recent signal activity so the couple can see small moments of interaction over time.
 
 ### Moon Memories
-- Upload photos with a title and caption
-- Images stored in Firebase Storage
-- Memory metadata stored in Firestore
-- Both partners can view memories
-- Only the uploader can delete their own memory
-- Improved upload, loading, success, error, and empty states
+
+Moon Memories lets partners upload and save shared photos.
+
+Each memory includes an image, title, and caption. The image is stored in Firebase Storage, while the memory metadata is stored in Firestore. Both partners can view the shared memories, but only the person who uploaded a memory can delete it.
+
+Moon Memories includes:
+
+* Photo upload
+* Title and caption fields
+* Firebase Storage image handling
+* Firestore metadata storage
+* Shared memory feed
+* Owner-only delete behavior
+* Loading, upload, success, error, and empty states
 
 ### Us Tab
-- Shows Moon Code
-- Shows connected partner info
-- Lets the couple set:
-  - Official date
-  - Reunion date
-- Uses compact expandable date rows
-- Includes copy-code feedback
-- Reads live couple data from Firestore
 
-## Technical Highlights
+The Us tab is where the couple can manage relationship details.
 
-- Built with **SwiftUI** using a multi-file architecture
-- Uses **Firebase Authentication** for account creation and login
-- Uses **Cloud Firestore** for real-time shared data
-- Uses **Firebase Storage** for memory image uploads
-- Enforces a **two-person room limit**
-- Uses **Firestore rules** and **Storage rules** for access control
-- Includes **unit tests** for core date logic, partner-name logic, and signal time formatting
-- Includes accessibility improvements across shared UI components
-- Includes polished loading, success, error, and empty states
+I wanted this tab to feel like a quiet settings and milestone page instead of a generic profile page. It shows the Moon Code, partner connection details, and important dates.
+
+The Us tab includes:
+
+* Moon Code display
+* Copy-code feedback
+* Connected partner information
+* Official relationship date
+* Reunion date
+* Compact expandable date rows
+* Live Firestore data updates
+
+---
+
+## Design Process
+
+I designed MoonMail around a soft, cozy visual style because the app is meant to feel personal rather than productivity-focused.
+
+The main design goal was to make the app feel calm and private. I used a moon-themed concept because it fit the long-distance idea well: two people can be in different places but still feel connected through the same shared space.
+
+I also tried to make the user flow simple. A partner should be able to create a room, share a code, and connect without needing a complicated setup process.
+
+As I built the app, I focused on making each feature feel connected to the couple’s relationship instead of adding features just for the sake of having more screens.
+
+---
+
+## Technical Approach
+
+I built MoonMail with SwiftUI because I wanted to practice native iOS development and create a polished mobile experience.
+
+Firebase was used because the app depends heavily on real-time shared data. Firestore allowed both partners to see updates without manually refreshing the app, while Firebase Authentication handled account creation and login. Firebase Storage was used for memory image uploads.
+
+The app is organized into multiple SwiftUI views and supporting logic files. I separated authentication, room creation, room joining, shared couple data, notes, moods, signals, memories, and relationship settings so the code would be easier to maintain.
+
+I also added Firestore and Storage rules so that users can only access data connected to their own Moon Room.
+
+---
 
 ## Tech Stack
 
-- Swift
-- SwiftUI
-- Firebase Authentication
-- Cloud Firestore
-- Firebase Storage
-- Firebase iOS SDK
-- Xcode
-- Git / GitHub
+* Swift
+* SwiftUI
+* Firebase Authentication
+* Cloud Firestore
+* Firebase Storage
+* Firebase iOS SDK
+* Xcode
+* Git
+* GitHub
+
+---
+
+## Technical Highlights
+
+* Built a native iOS app with SwiftUI
+* Implemented Firebase Authentication for account creation and login
+* Created a private room-joining system using unique Moon Codes
+* Connected two users to the same shared Firestore couple document
+* Enforced a two-person room limit
+* Used Cloud Firestore for real-time shared notes, moods, signals, and relationship data
+* Used Firebase Storage for photo uploads
+* Added owner-only deletion for uploaded memories
+* Added Firestore and Storage rules for access control
+* Added loading, success, error, and empty states across major features
+* Added unit tests for date logic, partner-name logic, and signal time formatting
+* Improved accessibility across shared UI components
+
+---
 
 ## Firebase Setup
 
 MoonMail uses the following Firebase services:
 
-- Authentication → Email/Password
-- Cloud Firestore
-- Firebase Storage
+* Firebase Authentication with Email/Password
+* Cloud Firestore
+* Firebase Storage
 
-The app is connected to Firebase using `GoogleService-Info.plist`.
+The app is connected to Firebase using:
+
+```text
+GoogleService-Info.plist
+```
+
+For security, this file should not be committed publicly with real production credentials.
+
+---
 
 ## Firestore Structure
 
-### Top-level collections
-- `users`
-- `couples`
+MoonMail uses two main top-level collections:
 
-### User document
+```text
+users
+couples
+```
 
-Path:
+### User Document
 
 ```text
 users/{uid}
+```
+
+Each user document stores basic account and room connection information.
+
+Example fields:
+
+```text
+uid
+name
+email
+coupleId
+createdAt
+```
+
+### Couple Document
+
+```text
+couples/{coupleId}
+```
+
+Each couple document represents one shared Moon Room.
+
+Example fields:
+
+```text
+moonCode
+memberIds
+memberNames
+officialDate
+reunionDate
+createdAt
+```
+
+Shared app data such as notes, signals, moods, and memories are connected to the couple document so both partners can access the same room data.
+
+---
+
+## What I Learned
+
+MoonMail helped me understand what it takes to build a real shared mobile experience instead of a static app.
+
+Some of the biggest things I learned were:
+
+* How to build an authentication flow with Firebase
+* How to structure shared user data in Firestore
+* How to design a private two-person room system
+* How to work with real-time updates in a SwiftUI app
+* How to upload and display images using Firebase Storage
+* How to think through access control with Firestore and Storage rules
+* How to handle loading, empty, success, and error states in a user-friendly way
+* How to write unit tests for important app logic
+* How to design features around a real emotional use case, not just technical requirements
+
+One challenge I worked through was making sure the Moon Room flow felt clear. At first, the relationship between account creation, room creation, and room joining was easy to make confusing. I improved the flow by separating the onboarding steps and making the Moon Code the main connection point between two users.
+
+Another challenge was keeping shared data consistent between partners. Since both users interact with the same room, I had to think carefully about how Firestore documents should be structured and how each screen should read and update shared data.
+
+---
+
+## Future Improvements
+
+Some features I would like to add next include:
+
+* Push notifications for new notes, moods, and signals
+* More customizable Moon Room themes
+* In-app anniversary reminders
+* Private voice notes
+* A shared countdown widget
+* More memory organization options
+* Better offline support
+* App Store TestFlight deployment
+* More polished animations and transitions
+
+---
+
+## Why This Project Matters To Me
+
+MoonMail matters to me because it was not just a technical project. I wanted to build something that felt personal and emotionally useful.
+
+It gave me a chance to practice iOS development, Firebase, real-time data, image uploads, and security rules, but it also pushed me to think more about product design. I had to ask what kind of interactions would actually help two people feel closer, instead of only thinking about what features I could add.
+
+This project helped me grow as a mobile developer because I worked on both the technical structure and the user experience behind the app.
+
+---
+
+## Author
+
+Selena Zhang
+
+GitHub:
+https://github.com/szzbj720
