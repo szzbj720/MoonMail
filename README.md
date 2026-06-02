@@ -384,7 +384,7 @@ Some features I would like to add next include:
 
 ## Why This Project Matters To Me
 
-MoonMail matters to me because it was not just a technical project. I wanted to build something that felt personal and emotionally useful.
+MoonMail matters to me because it was not just a technical project. I wanted to build something that felt personal and emotionally useful. Part of the reason I built MoonMail is because I have personally experienced long distance and understand how small moments of connection can matter. I wanted to build something for people like me who may not always have time for a full conversation, but still want a private and meaningful way to feel close to their partner.
 
 It gave me a chance to practice iOS development, Firebase, real-time data, image uploads, and security rules, but it also pushed me to think more about product design. I had to ask what kind of interactions would actually help two people feel closer, instead of only thinking about what features I could add.
 
