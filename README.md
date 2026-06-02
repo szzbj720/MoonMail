@@ -18,6 +18,22 @@ This project also gave me a chance to practice building a real iOS app with auth
 
 ---
 
+## The Problem
+
+Long-distance couples have plenty of ways to communicate, but many of those tools are built around conversations rather than connection.
+
+Texting apps are designed for messaging. Social media is designed for sharing with everyone. Calendar apps are designed for scheduling.
+
+I wanted to explore a different question:
+
+How can technology help two people feel more connected without requiring constant communication?
+
+For many couples, especially those in long-distance relationships, small interactions often matter more than long conversations. A quick mood update, a saved memory, or a simple signal can help someone feel connected even during a busy day.
+
+MoonMail was my attempt to build a product around those smaller moments.
+
+---
+
 ## Overview
 
 MoonMail lets two partners connect inside a private shared Moon Room.
@@ -28,13 +44,18 @@ The app is designed around a simple idea: long-distance connection should feel e
 
 ---
 
-## Demo
+## My Solution
 
-Screenshots below show the main onboarding flow, shared home screen, notes, memories, and relationship settings.
+I built MoonMail as a private shared space for two people.
+
+Instead of creating another messaging platform, I focused on lightweight interactions that help couples stay connected over time. The app combines shared memories, moods, notes, signals, and relationship milestones into a single experience designed specifically for long-distance relationships.
+
+My goal was to make the app feel less like a utility and more like a shared digital space that belongs to both partners.
 
 ---
 
 ## Screenshots
+Screenshots below show the main onboarding flow, shared home screen, notes, memories, and relationship settings.
 
 <p align="center">
   <img src="MoonMail/screenshots/Welcome.png" alt="Welcome Screen" width="220" />
@@ -179,6 +200,21 @@ As I built the app, I focused on making each feature feel connected to the coupl
 
 ---
 
+## Product Decisions
+
+A few product decisions shaped the direction of MoonMail:
+
+* I limited each Moon Room to two people because the experience is designed around a single relationship.
+* I used a Moon Code instead of username search to make joining feel more personal and intentional.
+* I chose lightweight features like moods and signals because connection is not always about having a full conversation.
+* I avoided building a traditional chat system because there are already many apps that do that well.
+* I designed the Home screen as a shared dashboard so both partners immediately see what is happening in their Moon Room.
+* I focused on emotional interactions rather than productivity-style features because the goal of the app is connection, not organization.
+
+Throughout development, I tried to ask whether a feature actually strengthened the relationship experience rather than simply adding functionality.
+
+---
+
 ## Technical Approach
 
 I built MoonMail with SwiftUI because I wanted to practice native iOS development and create a polished mobile experience.
@@ -312,6 +348,24 @@ Another challenge was keeping shared data consistent between partners. Since bot
 
 ---
 
+## What I'd Improve Next
+
+If I continued developing MoonMail, I would spend more time gathering feedback from real couples and observing how they naturally use the product.
+
+Some improvements I would prioritize include:
+
+* Push notifications for meaningful relationship moments
+* More personalization and customization options
+* Better onboarding for couples joining their first Moon Room
+* Shared relationship timelines and milestone history
+* Improved offline support
+* More polished animations and transitions
+* TestFlight distribution and App Store deployment
+
+One thing this project taught me is that relationship products are highly personal. Small design decisions can have a surprisingly large impact on how users feel while using the app, which makes user feedback especially important.
+
+---
+
 ## Future Improvements
 
 Some features I would like to add next include:
@@ -334,8 +388,7 @@ MoonMail matters to me because it was not just a technical project. I wanted to 
 
 It gave me a chance to practice iOS development, Firebase, real-time data, image uploads, and security rules, but it also pushed me to think more about product design. I had to ask what kind of interactions would actually help two people feel closer, instead of only thinking about what features I could add.
 
-This project helped me grow as a mobile developer because I worked on both the technical structure and the user experience behind the app.
-
+This project helped me grow not only as a mobile developer, but also as someone interested in product development. Building MoonMail required me to think about user emotions, feature prioritization, onboarding, and long-term engagement in addition to the technical implementation. It reinforced my interest in building products that solve real problems while creating experiences people genuinely enjoy using.
 ---
 
 ## Author
